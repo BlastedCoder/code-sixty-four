@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Copy, CheckCircle } from 'lucide-react'; // Premium icons
+import { Copy, CheckCircle, Loader2 } from 'lucide-react'; // Added Loader2 for loading state
 import DraftBoard from '@/components/DraftBoard';
 
 export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,6 +16,9 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   const [user, setUser] = useState<any>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // NEW: Loading state to prevent hydration errors
+  const [loading, setLoading] = useState(true); 
   const router = useRouter();
 
   useEffect(() => {
@@ -56,6 +59,9 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
       if (tData) setTeams(tData);
       if (mData) setMembers(mData);
       if (dpData) setDraftPicks(dpData);
+
+      // Tell the component it is safe to render the board now
+      setLoading(false); 
     };
 
     loadDraftRoom();
@@ -80,7 +86,7 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
     if (!league || !user) return;
     if (!canDraft) return alert("You cannot make a pick right now.");
 
-    // Insert the pick using the ID of the person ON THE CLOCK, not necessarily the person clicking
+    // Insert the pick using the ID of the person ON THE CLOCK
     const { error: pickError } = await supabase.from('draft_picks').insert({
       league_id: league.id,
       user_id: pickUserId, 
@@ -100,13 +106,11 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
     if (league.current_pick <= 1) return;
     const pickToUndo = league.current_pick - 1;
     
-    // Delete the most recent pick
     await supabase.from('draft_picks')
       .delete()
       .eq('league_id', league.id)
       .eq('pick_number', pickToUndo);
       
-    // Roll back the clock
     await supabase.from('leagues')
       .update({ current_pick: pickToUndo })
       .eq('id', league.id);
@@ -121,49 +125,59 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   };
 
   const handleFinalizeDraft = async () => {
-  // 1. Double-check the pick count in the DB for safety
-  const { count, error: countError } = await supabase
-    .from('draft_picks')
-    .select('*', { count: 'exact', head: true })
-    .eq('league_id', league.id);
+    const { count, error: countError } = await supabase
+      .from('draft_picks')
+      .select('*', { count: 'exact', head: true })
+      .eq('league_id', league.id);
 
-  if (countError || count !== 64) {
-    alert(`Cannot finalize. Found ${count}/64 picks.`);
-    return;
-  }
+    if (countError || count !== 64) {
+      alert(`Cannot finalize. Found ${count}/64 picks.`);
+      return;
+    }
 
-  // 2. Transition league to 'in_progress'
-  const { error } = await supabase
-    .from('leagues')
-    .update({ status: 'in_progress' })
-    .eq('id', league.id);
+    const { error } = await supabase
+      .from('leagues')
+      .update({ status: 'in_progress' })
+      .eq('id', league.id);
 
-  if (!error) {
-    // 3. Redirect back to the League Home where the Leaderboard now shows
-    router.push(`/leagues/${league.id}`);
-  } else {
-    alert("Error locking league. Please try again.");
-  }
-};
-
-// Pass it to your DraftBoard component
-<DraftBoard 
-  onFinalizeDraft={handleFinalizeDraft} 
-/>
+    if (!error) {
+      router.push(`/leagues/${league.id}`);
+    } else {
+      alert("Error locking league. Please try again.");
+    }
+  };
 
   const copyInviteLink = () => {
-    // Generate the full URL based on the current window location
     const inviteUrl = `${window.location.origin}/join/${league.invite_code}`;
-    
     navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
-    
-    // Reset the "Copied" state after 2 seconds
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // --- RENDERING GUARDS ---
+
   if (fetchError) return <div className="p-12 text-center text-red-600 font-bold bg-red-50 m-6 rounded-lg">{fetchError}</div>;
-  if (!league) return <div className="p-12 text-center text-slate-500 font-bold animate-pulse">Entering War Room...</div>;
+  
+  // FIX: Wait for data before rendering the board to avoid Hydration Error
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
+        <h2 className="text-xl font-bold text-slate-700">Loading Draft Board...</h2>
+      </div>
+    );
+  }
+
+  // FIX: Extra safety check to prevent rendering a blank board
+  if (!teams || teams.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="p-8 text-center text-red-500 font-bold bg-white border border-red-200 rounded-xl shadow-sm">
+          Error: No tournament teams found in the database. 
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 md:p-12">
@@ -206,7 +220,19 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
           </button>
         </section>
 
-        {/* ... Rest of your page content (ResultsPanel, Leaderboard, etc.) ... */}
+        {/* FIX: DraftBoard passed correctly with all necessary props */}
+        <DraftBoard 
+          league={league}
+          teams={teams}
+          members={members}
+          draftPicks={draftPicks}
+          currentUser={user}
+          onDraftTeam={handleDraftTeam}
+          onUndoPick={handleUndoPick}
+          onTogglePause={handleTogglePause}
+          onFinalizeDraft={handleFinalizeDraft} 
+        />
+
       </div>
     </main>
   );
