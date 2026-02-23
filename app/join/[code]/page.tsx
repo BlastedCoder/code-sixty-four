@@ -23,8 +23,8 @@ export default function JoinLeaguePage() {
         return;
       }
 
-        // 1. Find the league AND count current members
-        const { data: league, error: leagueError } = await supabase
+      // 1. Find the league AND count current members
+      const { data: league, error: leagueError } = await supabase
         .from('leagues')
         .select(`
             id, 
@@ -36,27 +36,30 @@ export default function JoinLeaguePage() {
         .eq('invite_code', code)
         .single();
 
-        if (league.status !== 'pre_draft') {
-        setStatus('error');
-        setMessage('This league is already in progress or locked.');
-        return;
-
-        if (leagueError || !league) {
+      // FIX 1: Always check for errors/null BEFORE checking properties like status
+      if (leagueError || !league) {
         setStatus('error');
         setMessage('Invalid invite code.');
         return;
-        }
+      }
 
-        // 2. Check if the league is full
-        const currentCount = league.league_members[0]?.count || 0;
-        if (currentCount >= league.max_members) {
+      // FIX 2: Added the missing closing bracket for this if block
+      if (league.status !== 'pre_draft') {
+        setStatus('error');
+        setMessage('This league is already in progress or locked.');
+        return;
+      }
+
+      // 2. Check if the league is full
+      const currentCount = league.league_members[0]?.count || 0;
+      if (currentCount >= league.max_members) {
         setStatus('error');
         setMessage(`Sorry, ${league.name} is full (Limit: ${league.max_members} players).`);
         return;
-        }
+      }
 
-        // 3. Proceed with the insertion if not full
-        const { error: joinError } = await supabase
+      // 3. Proceed with the insertion if not full
+      const { error: joinError } = await supabase
         .from('league_members')
         .insert({
             league_id: league.id,
