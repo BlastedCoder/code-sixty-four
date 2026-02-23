@@ -141,16 +141,36 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
           <p className="text-sm text-slate-500">
             {missingPlayers > 0 ? `You need ${missingPlayers} more players to fill the 8-team grid.` : 'Your league is full!'}
           </p>
-          <form onSubmit={handleSendInvite} className="flex flex-col space-y-2">
-            <input 
-              type="email" 
-              placeholder="friend@example.com" 
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (!inviteEmail) return;
+
+            // FIX: Clean up input to allow spaces or commas, then join with commas for the mailto link
+            const emails = inviteEmail.split(/[\s,]+/).filter(Boolean).join(',');
+
+            const subject = encodeURIComponent(`You're invited to join ${league.name}!`);
+            const body = encodeURIComponent(
+              `Hey!\n\nI've set up our NCAA Tournament Draft Pool: ${league.name}.\n\n` +
+              `Click here to go to the app: ${window.location.origin}/leagues\n` +
+              `Then, enter this Invite Code to join the room: ${league.invite_code}\n\n` +
+              `See you in the draft room!`
+            );
+
+            window.location.href = `mailto:${emails}?subject=${subject}&body=${body}`;
+            setInviteEmail('');
+          }} className="flex flex-col space-y-3">
+            
+            {/* FIX: Changed to textarea, darkened borders, better contrast */}
+            <textarea 
+              placeholder="pete@example.com, sarah@example.com" 
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-slate-900 focus:outline-none"
+              rows={3}
+              className="w-full px-3 py-2 bg-slate-50 border-2 border-slate-400 rounded-md text-sm text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none resize-none shadow-sm"
             />
-            <button type="submit" disabled={missingPlayers === 0} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2 rounded-md text-sm transition-colors disabled:opacity-50">
-              Draft Email Invite
+            
+            <button type="submit" disabled={missingPlayers === 0} className="w-full bg-slate-200 hover:bg-slate-300 text-slate-900 font-extrabold py-2 rounded-md text-sm transition-colors disabled:opacity-50">
+              Open Email App
             </button>
           </form>
         </div>

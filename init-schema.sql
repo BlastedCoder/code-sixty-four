@@ -227,3 +227,8 @@ BEGIN
     -- 6. Insert Round 6 (Championship): Game 63
     INSERT INTO public.games (id, round, next_game_id) VALUES (63, 6, NULL);
 END $$;
+
+-- Add a season_year column, defaulting to the current tournament year
+ALTER TABLE public.leagues ADD COLUMN season_year INT DEFAULT 2026;
+ALTER TABLE public.teams ADD COLUMN season_year INT DEFAULT 2026;
+ALTER TABLE public.games ADD COLUMN season_year INT DEFAULT 2026;

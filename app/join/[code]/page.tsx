@@ -64,7 +64,6 @@ export default function JoinLeaguePage() {
         .insert({
             league_id: league.id,
             user_id: session.user.id,
-            role: 'member'
         });
 
       if (joinError) {
