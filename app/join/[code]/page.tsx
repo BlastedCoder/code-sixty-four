@@ -43,8 +43,7 @@ export default function JoinLeaguePage() {
         return;
       }
 
-      // FIX 2: Added the missing closing bracket for this if block
-      if (league.status !== 'pre_draft') {
+        if (league.status !== 'pre_draft') {
         setStatus('error');
         setMessage('This league is already in progress or locked.');
         return;

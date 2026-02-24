@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import CommissionerDashboard from '@/components/CommissionerDashboard';
 import Leaderboard from '@/components/Leaderboard';
+import TournamentBracket from '@/components/TournamentBracket';
 
 export default function LeagueHomePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: leagueId } = use(params);
@@ -71,6 +72,16 @@ export default function LeagueHomePage({ params }: { params: Promise<{ id: strin
             currentUser={user} 
           />
         )}
+
+        <div className="mt-8 mb-6">
+        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
+          <span className="bg-slate-900 text-white w-8 h-8 rounded-lg flex items-center justify-center mr-3 text-sm">🏀</span>
+          Tournament Bracket
+        </h2>
+        
+        {/* The new Bracket Component */}
+        <TournamentBracket leagueId={league.id} />
+      </div>
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Roster Card */}
