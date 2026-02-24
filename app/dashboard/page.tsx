@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Pencil, Check, X } from 'lucide-react'; // Added icons for the UI
+import { Pencil, Check, X, Settings } from 'lucide-react';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -134,12 +134,21 @@ export default function DashboardPage() {
               <p className="text-slate-500 font-medium">{user?.email}</p>
             </div>
           </div>
-          <button 
-            onClick={handleSignOut}
-            className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold rounded-lg transition-colors border border-red-200"
-          >
-            Log Out
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link 
+              href="/dashboard/settings"
+              className="px-6 py-3 bg-white text-slate-700 hover:bg-slate-100 font-bold rounded-lg transition-colors border border-slate-200 flex items-center justify-center gap-2"
+            >
+              <Settings size={18} />
+              Settings
+            </Link>
+            <button 
+              onClick={handleSignOut}
+              className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold rounded-lg transition-colors border border-red-200"
+            >
+              Log Out
+            </button>
+          </div>
         </section>
 
         {/* My Leagues Section (Unchanged logic) */}

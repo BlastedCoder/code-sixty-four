@@ -13,6 +13,9 @@ const ROUND_NAMES = {
   6: 'Championship'
 };
 
+// Must match the exact order your SQL generation script used
+const REGIONS = ['East', 'West', 'South', 'Midwest'];
+
 export default function TournamentBracket({ leagueId }: { leagueId: string }) {
   const [games, setGames] = useState<any[]>([]);
   const [draftPicks, setDraftPicks] = useState<any[]>([]);
@@ -21,7 +24,6 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
 
   useEffect(() => {
     const fetchBracketData = async () => {
-      // 1. Fetch all games with team details
       const { data: gamesData } = await supabase
         .from('games')
         .select(`
@@ -36,7 +38,6 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
         `)
         .order('id', { ascending: true });
 
-      // 2. Fetch draft picks for THIS league so we know who owns who
       const { data: picksData } = await supabase
         .from('draft_picks')
         .select(`
@@ -48,7 +49,6 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
       setGames(gamesData || []);
       setDraftPicks(picksData || []);
       
-      // Auto-select the most active round (first round that has uncompleted games)
       const currentRound = gamesData?.find(g => !g.is_completed && g.team1 && g.team2)?.round || 1;
       setActiveRound(currentRound);
       
@@ -58,7 +58,6 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
     fetchBracketData();
   }, [leagueId]);
 
-  // Helper to find who drafted a specific team
   const getOwner = (teamId: number) => {
     const pick = draftPicks.find(p => p.team_id === teamId);
     return pick?.profiles?.display_name || 'Undrafted';
@@ -73,6 +72,51 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
   }
 
   const activeGames = games.filter(g => g.round === activeRound);
+
+  // Helper to render a single game card
+  const renderGameCard = (game: any) => (
+    <div key={game.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+      {/* Team 1 Row */}
+      <div className={`flex justify-between items-center p-3 border-b border-slate-100 ${
+        game.is_completed && game.winner_id !== game.team1?.id ? 'opacity-40 bg-slate-50' : ''
+      }`}>
+        <div className="flex flex-col truncate pr-2">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-bold text-slate-400 w-4">{game.team1?.seed || '-'}</span>
+            <span className={`text-sm font-bold truncate ${game.winner_id === game.team1?.id ? 'text-emerald-700' : 'text-slate-800'}`}>
+              {game.team1?.name || 'TBD'}
+            </span>
+          </div>
+          {game.team1 && (
+            <span className="text-[10px] font-semibold text-slate-400 ml-6 truncate">
+              {getOwner(game.team1.id)}
+            </span>
+          )}
+        </div>
+        <div className="font-extrabold text-slate-700">{game.team1_score ?? '-'}</div>
+      </div>
+
+      {/* Team 2 Row */}
+      <div className={`flex justify-between items-center p-3 ${
+        game.is_completed && game.winner_id !== game.team2?.id ? 'opacity-40 bg-slate-50' : ''
+      }`}>
+        <div className="flex flex-col truncate pr-2">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-bold text-slate-400 w-4">{game.team2?.seed || '-'}</span>
+            <span className={`text-sm font-bold truncate ${game.winner_id === game.team2?.id ? 'text-emerald-700' : 'text-slate-800'}`}>
+              {game.team2?.name || 'TBD'}
+            </span>
+          </div>
+          {game.team2 && (
+            <span className="text-[10px] font-semibold text-slate-400 ml-6 truncate">
+              {getOwner(game.team2.id)}
+            </span>
+          )}
+        </div>
+        <div className="font-extrabold text-slate-700">{game.team2_score ?? '-'}</div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -96,53 +140,36 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
 
       {/* Matchups Grid */}
       <div className="p-4 md:p-6 bg-slate-100">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {activeGames.map((game) => (
-            <div key={game.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        
+        {/* Rounds 1-4: Grouped by Region */}
+        {activeRound <= 4 ? (
+          <div className="space-y-8">
+            {REGIONS.map((regionName, regionIndex) => {
+              // Calculate how many games belong to each region for the active round
+              const gamesPerRegion = activeGames.length / 4;
+              // Slice out just the games for this specific region
+              const regionGames = activeGames.slice(regionIndex * gamesPerRegion, (regionIndex + 1) * gamesPerRegion);
               
-              {/* Team 1 Row */}
-              <div className={`flex justify-between items-center p-3 border-b border-slate-100 ${
-                game.is_completed && game.winner_id !== game.team1?.id ? 'opacity-40 bg-slate-50' : ''
-              }`}>
-                <div className="flex flex-col truncate pr-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-bold text-slate-400 w-4">{game.team1?.seed || '-'}</span>
-                    <span className={`text-sm font-bold truncate ${game.winner_id === game.team1?.id ? 'text-emerald-700' : 'text-slate-800'}`}>
-                      {game.team1?.name || 'TBD'}
-                    </span>
+              return (
+                <div key={regionName} className="space-y-4">
+                  <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider border-b-2 border-slate-200 pb-2 flex items-center">
+                    <span className="bg-slate-200 w-2 h-2 rounded-full mr-2"></span>
+                    {regionName} Region
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    {regionGames.map(game => renderGameCard(game))}
                   </div>
-                  {game.team1 && (
-                    <span className="text-[10px] font-semibold text-slate-400 ml-6 truncate">
-                      {getOwner(game.team1.id)}
-                    </span>
-                  )}
                 </div>
-                <div className="font-extrabold text-slate-700">{game.team1_score ?? '-'}</div>
-              </div>
-
-              {/* Team 2 Row */}
-              <div className={`flex justify-between items-center p-3 ${
-                game.is_completed && game.winner_id !== game.team2?.id ? 'opacity-40 bg-slate-50' : ''
-              }`}>
-                <div className="flex flex-col truncate pr-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-bold text-slate-400 w-4">{game.team2?.seed || '-'}</span>
-                    <span className={`text-sm font-bold truncate ${game.winner_id === game.team2?.id ? 'text-emerald-700' : 'text-slate-800'}`}>
-                      {game.team2?.name || 'TBD'}
-                    </span>
-                  </div>
-                  {game.team2 && (
-                    <span className="text-[10px] font-semibold text-slate-400 ml-6 truncate">
-                      {getOwner(game.team2.id)}
-                    </span>
-                  )}
-                </div>
-                <div className="font-extrabold text-slate-700">{game.team2_score ?? '-'}</div>
-              </div>
-
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* Rounds 5-6 (Final Four & Championship): No region groupings */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+             {activeGames.map(game => renderGameCard(game))}
+          </div>
+        )}
+        
       </div>
     </div>
   );
