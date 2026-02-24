@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
@@ -66,7 +68,17 @@ export default function LoginPage() {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Code Sixty Four</h1>
+        <div className="flex justify-center mb-6">
+          <Image 
+            src="/logo.png" 
+            alt="Tournament Logo" 
+            width={64} 
+            height={64} 
+            className="" // Optional: adds slight rounding and depth
+            priority // Tells Next.js to load this instantly
+          />
+        </div>
+       <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Code Sixty Four</h1>
           <p className="text-slate-500 font-medium">Sign in to manage your draft picks</p>
         </div>
 
@@ -129,6 +141,14 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
+        <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+          <p className="text-sm text-slate-500 font-medium">
+            New to the tournament pool?{' '}
+            <Link href="/rules" className="text-emerald-600 hover:text-emerald-700 font-extrabold underline decoration-2 underline-offset-2 transition-colors">
+              See how to play
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   );

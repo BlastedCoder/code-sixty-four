@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function AuthHeader() {
   const [user, setUser] = useState<any>(null);
@@ -38,11 +39,24 @@ export default function AuthHeader() {
   const initial = displayName ? displayName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || '?';
 
   return (
-    <div className="w-full bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-      <Link href="/" className="font-extrabold text-xl text-slate-900 tracking-tight">
-        Code Sixty Four
-      </Link>
-      
+<div className="w-full bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+  
+  {/* Group the Image and Text together inside the Link */}
+  <Link href="/" className="flex items-center gap-3 font-extrabold text-xl text-slate-900 tracking-tight">
+    <Image 
+      src="/logo.png" 
+      alt="Code Sixty Four Logo" 
+      width={40} 
+      height={40} 
+      className="rounded-md" // Optional: gives the logo nice, soft edges
+    />
+    <span>Code Sixty Four</span>
+  </Link>
+
+  {/* Any other items you add here later (like a user avatar or menu) will be pushed to the far right! */}
+      <Link href="/rules" className="text-sm font-bold text-slate-500 hover:text-emerald-600 transition-colors mx-4">
+  How to Play
+</Link>
       {user ? (
         <div className="flex items-center space-x-4">
           {/* Wrap the avatar and name in a Link pointing to /dashboard */}
