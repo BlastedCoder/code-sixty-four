@@ -31,8 +31,9 @@ export default function AuthHeader() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut = async () => {
+  const handleLogOut = async () => {
     await supabase.auth.signOut();
+    router.push('/login');
     router.refresh();
   };
 
@@ -54,9 +55,6 @@ export default function AuthHeader() {
   </Link>
 
   {/* Any other items you add here later (like a user avatar or menu) will be pushed to the far right! */}
-      <Link href="/rules" className="text-sm font-bold text-slate-500 hover:text-emerald-600 transition-colors mx-4">
-  How to Play
-</Link>
       {user ? (
         <div className="flex items-center space-x-4">
           {/* Wrap the avatar and name in a Link pointing to /dashboard */}
@@ -67,8 +65,8 @@ export default function AuthHeader() {
             <span className="text-sm font-bold text-slate-700 hidden md:block">{displayName || user.email}</span>
           </Link>
           
-          <button onClick={handleSignOut} className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">
-            Sign Out
+          <button onClick={handleLogOut} className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">
+            Log Out
           </button>
         </div>
       ) : (

@@ -72,12 +72,6 @@ export default function DashboardPage() {
     setUpdateLoading(false);
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-slate-500 font-bold animate-pulse">Loading Dashboard...</div>;
   }
@@ -142,12 +136,6 @@ export default function DashboardPage() {
               <Settings size={18} />
               Settings
             </Link>
-            <button 
-              onClick={handleSignOut}
-              className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold rounded-lg transition-colors border border-red-200"
-            >
-              Log Out
-            </button>
           </div>
         </section>
 
