@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Trophy, Users, Star } from 'lucide-react'; // Optional: if you have lucide-react installed
+import { Trophy, Users, Star } from 'lucide-react'; 
 
 export default function ResultsPanel({ members }: { members: any[] }) {
   if (!members || members.length === 0) return null;
@@ -21,7 +21,7 @@ export default function ResultsPanel({ members }: { members: any[] }) {
   const maxE8 = Math.max(...usersWithE8Count.map(u => u.count));
   const e8Leaders = usersWithE8Count.filter(u => u.count === maxE8 && maxE8 > 0);
 
-  const formatName = (name: string) => name.split(' ')[0]; // Returns first name for cleaner look
+  const formatName = (name: string) => name.split(' ')[0]; 
 
   return (
     <div className="space-y-4">
@@ -59,9 +59,12 @@ export default function ResultsPanel({ members }: { members: any[] }) {
           <div>
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Champion Pick</h3>
             <p className="text-lg font-extrabold text-slate-900 leading-tight">
-              {champWinners.length > 0 ? champWinners.map(l => l.displayName.split(' ')[0]).join(', ') : 'TBD'}
+              {champWinners.length > 0 ? champWinners.map(l => l.displayName.split(' ')[0]).join(', ') : '---'}
             </p>
-            <span className="text-xs font-bold text-amber-600">Finalist Tracked</span>
+            {/* Tag only appears when a champion is crowned */}
+            {champWinners.length > 0 && (
+              <span className="text-xs font-bold text-amber-600">Finalist Tracked</span>
+            )}
           </div>
         </div>
 
