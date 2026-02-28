@@ -1,3 +1,5 @@
+// Path: components/CommissionerDashboard.tsx
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,22 +9,18 @@ import { useRouter } from 'next/navigation';
 export default function CommissionerDashboard({ league, members, currentUser }: any) {
   const [inviteEmail, setInviteEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // NEW: Local state to handle manual reordering
   const [localMembers, setLocalMembers] = useState<any[]>([]);
   const router = useRouter();
 
-  // Keep the local list in sync and sorted by their current draft position
   useEffect(() => {
     if (members) {
       setLocalMembers([...members].sort((a: any, b: any) => (a.draft_position || 0) - (b.draft_position || 0)));
     }
   }, [members]);
 
-  // 1. Security Check: Only render if the current user created the league
+  // 1. Security Check: Uses `created_by` per your DB schema
   if (!league || !currentUser || league.created_by !== currentUser.id) return null;
 
-  // 2. Hide most of the dashboard if the draft has already started
   if (league.status !== 'pre_draft') {
     return (
       <div className="bg-slate-900 text-white rounded-xl p-4 mb-6 flex justify-between items-center shadow-md">
@@ -62,11 +60,8 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
     setLocalMembers(newOrder);
   };
 
-  // 4b. Save the Manual Order to the Database
   const handleSaveOrder = async () => {
     setIsProcessing(true);
-    
-    // Update each member with their new index + 1
     const updatePromises = localMembers.map((member, index) => 
       supabase.from('league_members')
         .update({ draft_position: index + 1 })
@@ -76,17 +71,12 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
 
     await Promise.all(updatePromises);
     setIsProcessing(false);
-    alert("Manual draft order saved!");
-    window.location.reload(); 
+    
+    router.refresh(); 
   };
 
-  // 4c. Randomize Draft Order (Auto-Saves)
-  const handleRandomizeOrder = async () => {
-    if (members.length < 2) {
-      alert("You need more players to randomize the order!");
-      return;
-    }
-    
+    const handleRandomizeOrder = async () => {
+    if (members.length < 2) return alert("You need more players to randomize the order!");
     if (!window.confirm("This will overwrite any existing draft order. Are you sure?")) return;
 
     setIsProcessing(true);
@@ -106,22 +96,41 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
 
     await Promise.all(updatePromises);
     setIsProcessing(false);
-    alert("Draft order randomized!");
-    window.location.reload(); 
+    
+    router.refresh(); 
   };
 
-  // 5. Start the Draft
   const handleStartDraft = async () => {
     if (missingPlayers > 0) {
-      const proceed = window.confirm(`You are missing ${missingPlayers} players. Are you SURE you want to start? The math works best with exactly 8.`);
+      const proceed = window.confirm(`You are missing ${missingPlayers} players. Are you SURE you want to start?`);
       if (!proceed) return;
     }
 
     setIsProcessing(true);
-    await supabase.from('leagues').update({ status: 'drafting' }).eq('id', league.id);
-    setIsProcessing(false);
 
-    router.push(`/leagues/${league.id}/draft`);
+    try {
+      const { data, error } = await supabase
+        .from('leagues')
+        .update({ status: 'drafting', current_pick: 1 })
+        .eq('id', league.id)
+        .select(); // Adding .select() forces Supabase to return the updated row
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        throw new Error("Update failed. Are you sure you are the Commissioner?");
+      }
+
+      // If successful, push to the draft room
+      router.push(`/leagues/${league.id}/draft`);
+
+    } catch (err: any) {
+      console.error("START DRAFT ERROR:", err);
+      alert(`Error starting draft: ${err.message}`);
+    } finally {
+      // This guarantees the button un-freezes even if it crashes
+      setIsProcessing(false); 
+    }
   };
 
   return (
@@ -145,12 +154,10 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
             e.preventDefault();
             if (!inviteEmail) return;
 
-            // FIX: Clean up input to allow spaces or commas, then join with commas for the mailto link
             const emails = inviteEmail.split(/[\s,]+/).filter(Boolean).join(',');
-
             const subject = encodeURIComponent(`You're invited to join ${league.name}!`);
             const body = encodeURIComponent(
-              `Hey!\n\nI've set up our Tournament Draft Pool: ${league.name}.\n\n` +
+              `Hey!\n\nI've set up our NCAA Tournament Draft Pool: ${league.name}.\n\n` +
               `Click here to go to the app: ${window.location.origin}/leagues\n` +
               `Then, enter this Invite Code to join the room: ${league.invite_code}\n\n` +
               `See you in the draft room!`
@@ -159,8 +166,6 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
             window.location.href = `mailto:${emails}?subject=${subject}&body=${body}`;
             setInviteEmail('');
           }} className="flex flex-col space-y-3">
-            
-            {/* FIX: Changed to textarea, darkened borders, better contrast */}
             <textarea 
               placeholder="pete@example.com, sarah@example.com" 
               value={inviteEmail}
@@ -168,21 +173,19 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
               rows={3}
               className="w-full px-3 py-2 bg-slate-50 border-2 border-slate-400 rounded-md text-sm text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none resize-none shadow-sm"
             />
-            
             <button type="submit" disabled={missingPlayers === 0} className="w-full bg-slate-200 hover:bg-slate-300 text-slate-900 font-extrabold py-2 rounded-md text-sm transition-colors disabled:opacity-50">
               Open Email App
             </button>
           </form>
         </div>
 
-        {/* Middle Column: Draft Order (UPDATED) */}
+        {/* Middle Column: Draft Order */}
         <div className="md:col-span-1 space-y-4 border-t md:border-t-0 md:border-l border-slate-200 pt-6 md:pt-0 md:pl-8 flex flex-col">
           <div>
             <h3 className="font-bold text-slate-700">Draft Order</h3>
             <p className="text-xs text-slate-500 mt-1 mb-3">Set the order manually or let the app randomize it.</p>
           </div>
           
-          {/* Interactive Reorder List */}
           <div className="space-y-2 flex-grow overflow-y-auto max-h-48 pr-1 scrollbar-thin scrollbar-thumb-slate-200">
             {localMembers.map((member, index) => (
               <div key={member.user_id} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-200 text-sm">

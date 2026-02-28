@@ -1,3 +1,5 @@
+// Path: app/leagues/page.tsx
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -29,6 +31,10 @@ export default function LeaguesPage() {
       .from('league_members')
       .select('league_id, leagues(name, invite_code)')
       .eq('user_id', session.user.id);
+
+    if (userLeagues) {
+      setMyLeagues(userLeagues);
+    }
   };
 
   const generateCode = () => {
