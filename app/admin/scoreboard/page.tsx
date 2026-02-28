@@ -14,7 +14,7 @@ export default function ScoreboardAdmin() {
   const [scores, setScores] = useState<Record<number, { team1: string, team2: string }>>({});
   
   const router = useRouter();
-  const ADMIN_EMAILS = ['your-email@example.com']; // UPDATE THIS
+  const ADMIN_EMAILS = ['dnewton685@gmail.com'];
 
   useEffect(() => {
     const verifyAdminAndLoad = async () => {

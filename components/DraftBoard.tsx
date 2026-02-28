@@ -1,6 +1,9 @@
+// Path: components\DraftBoard.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function DraftBoard({ 
   league, 
@@ -14,6 +17,7 @@ export default function DraftBoard({
   currentUser 
 }: any) {
   
+  const router = useRouter();
   const currentPick = (league?.current_pick && league?.current_pick > 0) ? league.current_pick : 1;
   const isDraftComplete = currentPick > 64;
   const isCommissioner = league?.created_by === currentUser?.id;
@@ -22,6 +26,41 @@ export default function DraftBoard({
   // State for the inline confirmation step
   const [confirmTeamId, setConfirmTeamId] = useState<number | null>(null);
   const activePickRef = useRef<HTMLDivElement>(null);
+
+  // ==========================================
+  // NEW: THE REAL-TIME ENGINE
+  // ==========================================
+  useEffect(() => {
+    if (!league?.id) return;
+
+    // Open a dedicated websocket channel for this specific draft room
+    const draftChannel = supabase.channel(`draft-room-${league.id}`)
+      // 1. Listen for anyone making a pick or the commissioner hitting 'Undo'
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'draft_picks', 
+        filter: `league_id=eq.${league.id}` 
+      }, () => {
+        router.refresh(); // Soft-refresh the UI with the new data
+      })
+      // 2. Listen for the Commissioner pausing/resuming or the pick counter advancing
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'leagues', 
+        filter: `id=eq.${league.id}` 
+      }, () => {
+        router.refresh();
+      })
+      .subscribe();
+
+    // Clean up the websocket connection if the user leaves the page
+    return () => {
+      supabase.removeChannel(draftChannel);
+    };
+  }, [league?.id, router]);
+  // ==========================================
 
   // 1. Pad Members (Ensure exactly 8 slots)
   const actualMembers = [...members].sort((a: any, b: any) => (a.draft_position || 0) - (b.draft_position || 0));
@@ -77,7 +116,7 @@ export default function DraftBoard({
       
       {/* TOP BAR: Commissioner Controls & Finalize */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-        <div>
+        <div className="flex flex-col items-center md:items-start">
           <h2 className="text-xl font-bold text-slate-800">Draft Room</h2>
           <p className="text-sm text-slate-500 font-medium">
             {isDraftComplete ? 'Draft Complete!' : isPaused ? 'Draft is Paused' : `Pick ${currentPick} of 64`}
@@ -85,8 +124,7 @@ export default function DraftBoard({
         </div>
 
         {isCommissioner && (
-          <div className="flex flex-col items-end">
-            {/* NEW: Commissioner Label */}
+          <div className="flex flex-col items-center md:items-end">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-1 pr-1">
               Commissioner Controls
             </span>
@@ -173,7 +211,6 @@ export default function DraftBoard({
               {region} Region
             </div>
             
-            {/* REMOVED: max-h-[600px] and overflow-y-auto so it expands to fit all 16 rows */}
             <div className="flex flex-col p-2 space-y-1">
               {teams
                 .filter((t: any) => t.region === region)

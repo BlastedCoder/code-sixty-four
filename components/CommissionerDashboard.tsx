@@ -71,10 +71,11 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
 
     await Promise.all(updatePromises);
     setIsProcessing(false);
-    window.location.reload(); 
+    
+    router.refresh(); 
   };
 
-  const handleRandomizeOrder = async () => {
+    const handleRandomizeOrder = async () => {
     if (members.length < 2) return alert("You need more players to randomize the order!");
     if (!window.confirm("This will overwrite any existing draft order. Are you sure?")) return;
 
@@ -95,7 +96,8 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
 
     await Promise.all(updatePromises);
     setIsProcessing(false);
-    window.location.reload(); 
+    
+    router.refresh(); 
   };
 
   const handleStartDraft = async () => {
