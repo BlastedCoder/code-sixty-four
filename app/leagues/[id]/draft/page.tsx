@@ -3,8 +3,9 @@
 import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Copy, CheckCircle, Loader2 } from 'lucide-react'; // Added Loader2 for loading state
+import { Copy, CheckCircle, Loader2 } from 'lucide-react';
 import DraftBoard from '@/components/DraftBoard';
+import DevPanel from '@/components/DevPanel';
 
 export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: leagueId } = use(params);
@@ -263,6 +264,7 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
         />
 
       </div>
+      <DevPanel leagueId={leagueId} />
     </main>
   );
 }

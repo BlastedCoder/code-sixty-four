@@ -11,7 +11,7 @@ export default function RulesPage() {
     {
       icon: <Repeat className="w-8 h-8 text-emerald-600" />,
       title: "2. The Snake Draft",
-      description: "Once the league fills up, the commissioner starts the clock. The draft snakes back and forth (1 to 8, then 8 to 1). You will draft 8 of the 64 NCAA teams to build your ultimate roster."
+      description: "Once the league fills up, the commissioner starts the clock. The draft snakes back and forth (1 to 8, then 8 to 1). You will draft 8 of the 64 Tournament teams to build your ultimate roster."
     },
     {
       icon: <Trophy className="w-8 h-8 text-emerald-600" />,

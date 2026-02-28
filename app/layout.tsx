@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Code Sixty Four",
-  description: "NCAA Tournament Draft Pool",
+  description: "Tournament Draft Pool",
 };
 
 export default function RootLayout({

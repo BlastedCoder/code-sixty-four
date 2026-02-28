@@ -39,7 +39,7 @@ CREATE TABLE public.league_members (
   PRIMARY KEY (league_id, user_id)
 );
 
--- Teams (The 64 NCAA Teams)
+-- Teams (The 64 Teams)
 CREATE TABLE public.teams (
   id INT PRIMARY KEY, 
   name TEXT NOT NULL,

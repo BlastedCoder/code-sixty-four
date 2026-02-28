@@ -150,7 +150,7 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
 
             const subject = encodeURIComponent(`You're invited to join ${league.name}!`);
             const body = encodeURIComponent(
-              `Hey!\n\nI've set up our NCAA Tournament Draft Pool: ${league.name}.\n\n` +
+              `Hey!\n\nI've set up our Tournament Draft Pool: ${league.name}.\n\n` +
               `Click here to go to the app: ${window.location.origin}/leagues\n` +
               `Then, enter this Invite Code to join the room: ${league.invite_code}\n\n` +
               `See you in the draft room!`
