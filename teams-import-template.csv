@@ -1,0 +1,65 @@
+﻿name,seed,region,wins,is_eliminated,season_year
+Duke,1,East,0,FALSE,2025
+Alabama,2,East,0,FALSE,2025
+Wisconsin,3,East,0,FALSE,2025
+Arizona,4,East,0,FALSE,2025
+Oregon,5,East,0,FALSE,2025
+BYU,6,East,0,FALSE,2025
+Saint Mary's,7,East,0,FALSE,2025
+Mississippi State,8,East,0,FALSE,2025
+Baylor,9,East,0,FALSE,2025
+Vanderbilt,10,East,0,FALSE,2025
+VCU,11,East,0,FALSE,2025
+Liberty,12,East,0,FALSE,2025
+Akron,13,East,0,FALSE,2025
+Montana,14,East,0,FALSE,2025
+Robert Morris,15,East,0,FALSE,2025
+American/Mount St. Mary's,16,East,0,FALSE,2025
+Florida,1,West,0,FALSE,2025
+St. John's,2,West,0,FALSE,2025
+Texas Tech,3,West,0,FALSE,2025
+Maryland,4,West,0,FALSE,2025
+Memphis,5,West,0,FALSE,2025
+Missouri,6,West,0,FALSE,2025
+Kansas,7,West,0,FALSE,2025
+UConn,8,West,0,FALSE,2025
+Oklahoma,9,West,0,FALSE,2025
+Arkansas,10,West,0,FALSE,2025
+Drake,11,West,0,FALSE,2025
+Colorado State,12,West,0,FALSE,2025
+Grand Canyon,13,West,0,FALSE,2025
+UNC Wilmington,14,West,0,FALSE,2025
+Omaha,15,West,0,FALSE,2025
+Norfolk State,16,West,0,FALSE,2025
+Auburn,1,South,0,FALSE,2025
+Michigan State,2,South,0,FALSE,2025
+Iowa State,3,South,0,FALSE,2025
+Texas A&M,4,South,0,FALSE,2025
+Michigan,5,South,0,FALSE,2025
+Ole Miss,6,South,0,FALSE,2025
+Marquette,7,South,0,FALSE,2025
+Louisville,8,South,0,FALSE,2025
+Creighton,9,South,0,FALSE,2025
+New Mexico,10,South,0,FALSE,2025
+San Diego State/North Carolina,11,South,0,FALSE,2025
+UC San Diego,12,South,0,FALSE,2025
+Yale,13,South,0,FALSE,2025
+Lipscomb,14,South,0,FALSE,2025
+Bryant,15,South,0,FALSE,2025
+Alabama State/Saint Francis,16,South,0,FALSE,2025
+Houston,1,Midwest,0,FALSE,2025
+Tennessee,2,Midwest,0,FALSE,2025
+Kentucky,3,Midwest,0,FALSE,2025
+Purdue,4,Midwest,0,FALSE,2025
+Clemson,5,Midwest,0,FALSE,2025
+Illinois,6,Midwest,0,FALSE,2025
+UCLA,7,Midwest,0,FALSE,2025
+Gonzaga,8,Midwest,0,FALSE,2025
+Georgia,9,Midwest,0,FALSE,2025
+Utah State,10,Midwest,0,FALSE,2025
+Texas,11,Midwest,0,FALSE,2025
+Xavier,12,Midwest,0,FALSE,2025
+McNeese,13,Midwest,0,FALSE,2025
+High Point,14,Midwest,0,FALSE,2025
+Troy,15,Midwest,0,FALSE,2025
+Wofford/SIU Edwardsville,16,Midwest,0,FALSE,2025

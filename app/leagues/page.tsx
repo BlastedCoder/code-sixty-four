@@ -61,6 +61,8 @@ export default function LeaguesPage() {
 
     setNewLeagueName('');
     fetchUserAndLeagues();
+
+    router.push(`/leagues/${leagueData.id}`);
   };
 
   const handleJoinLeague = async (e: React.FormEvent) => {

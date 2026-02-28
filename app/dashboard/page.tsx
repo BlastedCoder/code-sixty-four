@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Pencil, Check, X } from 'lucide-react'; // Added icons for the UI
+import { Pencil, Check, X, Settings } from 'lucide-react';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -30,27 +30,36 @@ export default function DashboardPage() {
       
       setUser(session.user);
 
-      const [ { data: profileData }, { data: leaguesData } ] = await Promise.all([
-  supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-  supabase.from('league_members')
-    .select(`
-      league_id, 
-      leagues(
-        name, 
-        invite_code, 
-        status, 
-        max_members,
-        league_members(count)
-      )
-    `)
-    .eq('user_id', session.user.id)
-]);
+      const [ { data: profileData }, { data: leaguesData, error: leaguesError } ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+        supabase.from('league_members')
+          .select(`
+            league_id, 
+            leagues(
+              id,
+              name, 
+              invite_code, 
+              status, 
+              max_members,
+              member_count
+            )
+          `)
+          .eq('user_id', session.user.id)
+      ]);
+
+      // Let's log exactly what the database returns so we can debug!
+      console.log("Fetched Leagues Data:", leaguesData);
+      if (leaguesError) console.error("League Fetch Error:", leaguesError);
 
       if (profileData) {
         setProfile(profileData);
-        setNewName(profileData.display_name || ''); // Initialize edit state
+        setNewName(profileData.display_name || ''); 
       }
-      if (leaguesData) setMyLeagues(leaguesData);
+      
+      // Only set leagues if we actually got valid data back
+      if (leaguesData) {
+        setMyLeagues(leaguesData);
+      }
       
       setLoading(false);
     };
@@ -70,12 +79,6 @@ export default function DashboardPage() {
       setIsEditing(false);
     }
     setUpdateLoading(false);
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
   };
 
   if (loading) {
@@ -134,15 +137,18 @@ export default function DashboardPage() {
               <p className="text-slate-500 font-medium">{user?.email}</p>
             </div>
           </div>
-          <button 
-            onClick={handleSignOut}
-            className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 font-bold rounded-lg transition-colors border border-red-200"
-          >
-            Log Out
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link 
+              href="/dashboard/settings"
+              className="px-6 py-3 bg-white text-slate-700 hover:bg-slate-100 font-bold rounded-lg transition-colors border border-slate-200 flex items-center justify-center gap-2"
+            >
+              <Settings size={18} />
+              Settings
+            </Link>
+          </div>
         </section>
 
-        {/* My Leagues Section (Unchanged logic) */}
+        {/* My Leagues Section */}
         <section>
           <div className="flex justify-between items-end mb-6">
             <div>
@@ -166,40 +172,47 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
-              {myLeagues.map((ml: any) => (
-                <Link 
-                  href={`/leagues/${ml.league_id}`} 
-                  key={ml.league_id}
-                  className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:ring-2 hover:ring-emerald-500 transition-all cursor-pointer flex flex-col justify-between h-full group"
-                >
-                  <div className="mb-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-extrabold text-slate-900 text-xl group-hover:text-emerald-700 transition-colors">
-                        {ml.leagues.name}
-                      </h3>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        ml.leagues.status === 'pre_draft' ? 'bg-amber-100 text-amber-800' :
-                        ml.leagues.status === 'drafting' ? 'bg-emerald-100 text-emerald-800' :
-                        'bg-slate-100 text-slate-600'
-                      }`}>
-                        {ml.leagues.status.replace('_', ' ')}
+              {myLeagues.map((ml: any) => {
+                // Safely grab the nested league object
+                const league = ml.leagues;
+                if (!league) return null; // Skip if the database join failed
+
+                return (
+                  <Link 
+                    href={`/leagues/${ml.league_id}`} 
+                    key={ml.league_id}
+                    className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:ring-2 hover:ring-emerald-500 transition-all cursor-pointer flex flex-col justify-between h-full group"
+                  >
+                    <div className="mb-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-extrabold text-slate-900 text-xl group-hover:text-emerald-700 transition-colors">
+                          {league.name}
+                        </h3>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          league.status === 'pre_draft' ? 'bg-amber-100 text-amber-800' :
+                          league.status === 'drafting' ? 'bg-emerald-100 text-emerald-800' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {league.status?.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                      <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Capacity</span>
+                          <span className="text-xs font-bold text-slate-700">
+                            {/* FIXED: Now it reads from league.member_count! */}
+                            {league.member_count || 1} / {league.max_members || 8} Players
+                          </span>
+                      </div>
+                      <span className="text-sm font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
+                          Go to League &rarr;
                       </span>
                     </div>
-                  </div>
-                  
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Capacity</span>
-                    <span className="text-xs font-bold text-slate-700">
-                    {ml.member_count || 1} / {ml.leagues.max_members || 8} Players
-                    </span>
-                </div>
-                <span className="text-sm font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
-                    Go to League &rarr;
-                    </span>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>

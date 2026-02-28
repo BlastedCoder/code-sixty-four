@@ -3,8 +3,9 @@
 import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Copy, CheckCircle, Loader2 } from 'lucide-react'; // Added Loader2 for loading state
+import { Copy, CheckCircle, Loader2 } from 'lucide-react';
 import DraftBoard from '@/components/DraftBoard';
+import DevPanel from '@/components/DevPanel';
 
 export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: leagueId } = use(params);
@@ -16,6 +17,7 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   const [user, setUser] = useState<any>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   
   // NEW: Loading state to prevent hydration errors
   const [loading, setLoading] = useState(true); 
@@ -125,6 +127,9 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   };
 
   const handleFinalizeDraft = async () => {
+    // Prevent double-clicks
+    // setIsFinalizing(true); 
+
     const { count, error: countError } = await supabase
       .from('draft_picks')
       .select('*', { count: 'exact', head: true })
@@ -132,6 +137,7 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
 
     if (countError || count !== 64) {
       alert(`Cannot finalize. Found ${count}/64 picks.`);
+      // setIsFinalizing(false);
       return;
     }
 
@@ -141,9 +147,33 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
       .eq('id', league.id);
 
     if (!error) {
+      // 2. AWAIT THE EMAILS FIRST
+      await sendDraftResults(); 
+      
+      // 3. THEN NAVIGATE AWAY
       router.push(`/leagues/${league.id}`);
     } else {
       alert("Error locking league. Please try again.");
+      // setIsFinalizing(false);
+    }
+  };
+
+  const sendDraftResults = async () => {
+    try {
+      const response = await fetch('/api/send-draft-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leagueId: league.id })
+      });
+
+      if (!response.ok) {
+        console.error("Failed to send draft emails");
+        alert("League finalized, but the emails failed to send.");
+      } else {
+        alert("Draft complete! Results emailed to the league.");
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -234,6 +264,7 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
         />
 
       </div>
+      <DevPanel leagueId={leagueId} />
     </main>
   );
 }
