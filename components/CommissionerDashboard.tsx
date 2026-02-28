@@ -105,10 +105,30 @@ export default function CommissionerDashboard({ league, members, currentUser }: 
     }
 
     setIsProcessing(true);
-    await supabase.from('leagues').update({ status: 'drafting', current_pick: 1 }).eq('id', league.id);
-    setIsProcessing(false);
 
-    router.push(`/leagues/${league.id}/draft`);
+    try {
+      const { data, error } = await supabase
+        .from('leagues')
+        .update({ status: 'drafting', current_pick: 1 })
+        .eq('id', league.id)
+        .select(); // Adding .select() forces Supabase to return the updated row
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        throw new Error("Update failed. Are you sure you are the Commissioner?");
+      }
+
+      // If successful, push to the draft room
+      router.push(`/leagues/${league.id}/draft`);
+
+    } catch (err: any) {
+      console.error("START DRAFT ERROR:", err);
+      alert(`Error starting draft: ${err.message}`);
+    } finally {
+      // This guarantees the button un-freezes even if it crashes
+      setIsProcessing(false); 
+    }
   };
 
   return (
