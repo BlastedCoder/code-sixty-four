@@ -1,3 +1,4 @@
+// components/Leaderboard.tsx
 // Path: components/Leaderboard.tsx (or app/leagues/[id]/Leaderboard.tsx)
 
 'use client';

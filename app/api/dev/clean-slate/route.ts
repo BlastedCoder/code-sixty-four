@@ -1,3 +1,4 @@
+// app/api/dev/clean-slate/route.ts
 // Path: app/api/dev/clean-slate/route.ts
 
 import { NextResponse } from 'next/server';

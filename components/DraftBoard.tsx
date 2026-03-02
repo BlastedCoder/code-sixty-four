@@ -1,3 +1,4 @@
+// components/DraftBoard.tsx
 // Path: components\DraftBoard.tsx
 'use client';
 

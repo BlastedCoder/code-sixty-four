@@ -1,3 +1,4 @@
+// app/api/dev/simulate-pick/route.ts
 // Path: app/api/dev/simulate-pick/route.ts
 
 import { NextResponse } from 'next/server';

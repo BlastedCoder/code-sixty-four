@@ -1,3 +1,4 @@
+// app/leagues/[id]/draft/page.tsx
 'use client';
 
 import { useEffect, useState, use } from 'react';

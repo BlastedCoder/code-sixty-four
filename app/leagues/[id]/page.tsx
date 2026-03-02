@@ -1,3 +1,4 @@
+// app/leagues/[id]/page.tsx
 // Path: app/leagues/[id]/page.tsx
 
 'use client';

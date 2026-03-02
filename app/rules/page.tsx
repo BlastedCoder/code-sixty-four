@@ -1,3 +1,4 @@
+// app/rules/page.tsx
 import Link from 'next/link';
 import { Users, Repeat, Trophy, Medal } from 'lucide-react';
 

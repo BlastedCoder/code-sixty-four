@@ -1,3 +1,4 @@
+// app/contact/page.tsx
 import { Mail } from 'lucide-react';
 
 export default function ContactPage() {

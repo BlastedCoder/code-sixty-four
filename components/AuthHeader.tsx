@@ -1,3 +1,4 @@
+// components/AuthHeader.tsx
 'use client';
 
 import { useEffect, useState } from 'react';

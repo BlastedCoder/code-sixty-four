@@ -1,3 +1,4 @@
+// app/leagues/[id]/bracket/page.tsx
 // Path: app/leagues/[id]/bracket/page.tsx
 
 'use client';

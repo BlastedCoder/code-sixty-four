@@ -1,3 +1,4 @@
+// app/admin/scoreboard/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';

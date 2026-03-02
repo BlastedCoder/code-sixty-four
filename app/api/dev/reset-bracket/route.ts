@@ -1,3 +1,4 @@
+// app/api/dev/reset-bracket/route.ts
 // Path: app/api/dev/reset-bracket/route.ts
 
 import { NextResponse } from 'next/server';
