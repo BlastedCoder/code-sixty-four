@@ -1,5 +1,4 @@
-// app/api/dev/autocomplete-draft/route.ts
-// Path: app\api\dev\autocomplete-draft\route.ts
+﻿// app/api/dev/autocomplete-draft/route.ts
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';

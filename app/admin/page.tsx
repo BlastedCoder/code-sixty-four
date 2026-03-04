@@ -1,5 +1,6 @@
-// app/admin/page.tsx
+﻿// app/admin/page.tsx
 'use client';
+import { toast } from 'sonner';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -45,7 +46,7 @@ export default function AdminPage() {
       }
     }
 
-    alert('Game updated and bracket advanced!');
+    toast.success('Game updated and bracket advanced!');
     fetchData(); // Refresh the data
   };
 

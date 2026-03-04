@@ -32,48 +32,48 @@ export async function POST(req: Request) {
     const { leagueId } = await req.json();
     console.log("1. Received League ID:", leagueId);
 
-    // 1. Get League Info
-    const { data: league, error: leagueError } = await supabaseAdmin
-      .from('leagues')
-      .select('name')
-      .eq('id', leagueId)
-      .single();
-      
+    // Fetch all three pieces of data in parallel instead of sequentially
+    const [
+      { data: league, error: leagueError },
+      { data: picks, error: picksError },
+      { data: members, error: membersError }
+    ] = await Promise.all([
+      supabaseAdmin
+        .from('leagues')
+        .select('name')
+        .eq('id', leagueId)
+        .single(),
+      supabaseAdmin
+        .from('draft_picks')
+        .select(`
+          user_id,
+          team_id,
+          teams ( name, seed, region )
+        `)
+        .eq('league_id', leagueId),
+      supabaseAdmin
+        .from('league_members')
+        .select(`
+          user_id,
+          profiles ( display_name )
+        `)
+        .eq('league_id', leagueId)
+    ]);
+
     if (leagueError) console.error("Supabase League Error:", leagueError);
-
-    // 2. Get all Draft Picks with Team Names
-    const { data: picks, error: picksError } = await supabaseAdmin
-      .from('draft_picks')
-      .select(`
-        user_id,
-        team_id,
-        teams ( name, seed, region )
-      `)
-      .eq('league_id', leagueId);
-      
     if (picksError) console.error("Supabase Picks Error:", picksError);
-
-    // 3. Get all League Members & Their Profiles
-    const { data: members, error: membersError } = await supabaseAdmin
-      .from('league_members')
-      .select(`
-        user_id,
-        profiles ( display_name )
-      `)
-      .eq('league_id', leagueId);
-      
     if (membersError) console.error("Supabase Members Error:", membersError);
 
     if (!members || !picks || !league) {
       throw new Error(`Missing data! League exists: ${!!league}, Picks exist: ${!!picks}, Members exist: ${!!members}`);
     }
-    
+
     const typedMembers = members as unknown as MemberWithProfile[];
     const typedPicks = picks as unknown as PickWithTeam[];
-    
+
     // 4. Build Rosters and Fetch Emails independently
     const emailPromises = typedMembers.map(async (m) => {
-      
+
       // A. Build this user's picks regardless of whether they have a valid email
       const userPicks = typedPicks
         .filter(p => p.user_id === m.user_id)
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
       // B. Try to fetch their email for delivery
       let userEmail = null;
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(m.user_id);
-      
+
       if (!authError && authData?.user?.email) {
         userEmail = authData.user.email;
       } else {
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
 
     // 5. Build the master HTML using EVERYONE'S roster (no filtering out null emails here!)
     const allRostersHtml = allMemberData.map(md => md.rosterHtml).join('');
-    
+
     const emailHtml = `
       <div style="font-family: sans-serif; max-w: 600px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #059669;">The Draft is Complete! 🏀</h1>
@@ -131,7 +131,7 @@ export async function POST(req: Request) {
     // Send via Resend and capture any errors
     const { data: resendData, error: resendError } = await resend.emails.send({
       from: 'onboarding@resend.dev', // MUST be this while testing
-      to: ['dnewton685@gmail.com'], // ⚠️ REPLACE THIS WITH YOUR RESEND LOGIN EMAIL
+      to: ['dnewton685@gmail.com'], // ⚠️ TESTING ONLY — replace with `validEmails` before going live
       subject: `🏆 Draft Results: ${league.name}`,
       html: emailHtml,
     });

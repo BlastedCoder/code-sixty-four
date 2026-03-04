@@ -1,5 +1,6 @@
-// app/admin/scoreboard/page.tsx
+﻿// app/admin/scoreboard/page.tsx
 'use client';
+import { toast } from 'sonner';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -56,7 +57,7 @@ export default function ScoreboardAdmin() {
     const s2 = parseInt(scores[game.id]?.team2);
 
     if (isNaN(s1) || isNaN(s2) || s1 === s2) {
-      alert("Please enter valid, non-tying scores for both teams.");
+      toast.error("Please enter valid, non-tying scores for both teams.");
       return;
     }
 
@@ -84,7 +85,7 @@ export default function ScoreboardAdmin() {
 
       setGames(prev => prev.filter(g => g.id !== game.id));
     } catch (err) {
-      alert("Something went wrong updating the database.");
+      toast.error("Something went wrong updating the database.");
     }
     setIsProcessing(null);
   };

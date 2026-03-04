@@ -1,5 +1,4 @@
-// components/HTraditionalBracket.tsx
-// Path: components/HTraditionalBracket.tsx
+﻿// components/HTraditionalBracket.tsx
 
 'use client';
 

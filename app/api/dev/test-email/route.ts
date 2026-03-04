@@ -1,5 +1,4 @@
-// app/api/dev/test-email/route.ts
-// Path: app/api/dev/test-email/route.ts
+﻿// app/api/dev/test-email/route.ts
 
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';

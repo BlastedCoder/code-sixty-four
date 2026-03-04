@@ -1,7 +1,6 @@
-// app/leagues/page.tsx
-// Path: app/leagues/page.tsx
-
+﻿// app/leagues/page.tsx
 'use client';
+import { toast } from 'sonner';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -39,37 +38,47 @@ export default function LeaguesPage() {
   };
 
   const generateCode = () => {
-    // Generates a random 6-character alphanumeric string
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Use crypto for better randomness. 8 hex chars = 4 billion+ possible values.
+    // Truncated to 6 uppercase alphanumeric for user-friendliness.
+    const array = new Uint8Array(4);
+    crypto.getRandomValues(array);
+    return Array.from(array, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
   };
 
   const handleCreateLeague = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLeagueName || !user) return;
 
-    const newCode = generateCode();
+    // Retry up to 3 times in case of invite code collision (unique constraint)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const newCode = generateCode();
 
-    // 1. Create the new league with the generated code
-    const { data: leagueData, error: leagueError } = await supabase
-      .from('leagues')
-      .insert({ name: newLeagueName, created_by: user.id, invite_code: newCode })
-      .select('id')
-      .single();
+      const { data: leagueData, error: leagueError } = await supabase
+        .from('leagues')
+        .insert({ name: newLeagueName, created_by: user.id, invite_code: newCode })
+        .select('id')
+        .single();
 
-    if (leagueError) {
-      alert('Error creating league: ' + leagueError.message);
+      if (leagueError) {
+        // If it's a unique constraint violation on invite_code, retry with a new code
+        if (leagueError.code === '23505' && attempt < 2) {
+          continue;
+        }
+        toast.error('creating league: ' + leagueError.message);
+        return;
+      }
+
+      // 2. Automatically add the creator (Commissioner) to the league
+      await supabase
+        .from('league_members')
+        .insert({ league_id: leagueData.id, user_id: user.id });
+
+      setNewLeagueName('');
+      fetchUserAndLeagues();
+
+      router.push(`/leagues/${leagueData.id}`);
       return;
     }
-
-    // 2. Automatically add the creator (Commissioner) to the league
-    await supabase
-      .from('league_members')
-      .insert({ league_id: leagueData.id, user_id: user.id });
-
-    setNewLeagueName('');
-    fetchUserAndLeagues();
-
-    router.push(`/leagues/${leagueData.id}`);
   };
 
   const handleJoinLeague = async (e: React.FormEvent) => {
@@ -86,7 +95,7 @@ export default function LeaguesPage() {
       .single();
 
     if (lookupError || !leagueData) {
-      alert(`Invalid Code Error: ${lookupError?.message || 'League not found'}`);
+      toast.error(`Invalid Code Error: ${lookupError?.message || 'League not found'}`);
       return;
     }
 
@@ -97,66 +106,66 @@ export default function LeaguesPage() {
 
     //Show exact join error
     if (joinError) {
-      alert(`Failed to join: ${joinError.message}`);
+      toast.error(`Failed to join: ${joinError.message}`);
     } else {
       setInviteCode('');
       fetchUserAndLeagues();
-      alert(`Successfully joined ${leagueData.name}!`);
+      toast.success(`Successfully joined ${leagueData.name}!`);
     }
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 md:p-12">
+    <main className="min-h-screen bg-slate-50 dark:bg-background p-6 md:p-12">
       <div className="max-w-5xl mx-auto space-y-8">
-        
+
         <header className="mb-10">
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">League Hub</h1>
-          <p className="text-lg text-slate-600 mt-2">Create a new 8-player pool or join using an invite code.</p>
+          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">League Hub</h1>
+          <p className="text-lg text-slate-600 dark:text-slate-400 mt-2">Create a new 8-player pool or join using an invite code.</p>
         </header>
 
         <div className="grid md:grid-cols-2 gap-8">
-          
+
           {/* Create League Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Create a League</h2>
-            <p className="text-sm text-slate-500 mb-6">Start a fresh bracket pool and invite your friends.</p>
-            
+          <div className="bg-white dark:bg-card rounded-2xl shadow-sm border border-slate-200 dark:border-card-border p-8">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">Create a League</h2>
+            <p className="text-sm text-slate-500 dark:text-muted mb-6">Start a fresh bracket pool and invite your friends.</p>
+
             <form onSubmit={handleCreateLeague} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">League Name</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">League Name</label>
                 <input
                   type="text"
                   value={newLeagueName}
                   onChange={(e) => setNewLeagueName(e.target.value)}
                   placeholder="e.g., The Code Sixty Four Cup"
-                  className="w-full px-4 py-3 border-2 border-slate-300 text-slate-900 font-bold rounded-lg focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-bold rounded-lg focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 placeholder:text-slate-400"
                   required
                 />
               </div>
               <button type="submit" className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold tracking-wide transition-colors">
-                Create & Generate Code
+                Create &amp; Generate Code
               </button>
             </form>
           </div>
 
           {/* Join League Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Join a League</h2>
-            <p className="text-sm text-slate-500 mb-6">Enter the 6-character code provided by your Commissioner.</p>
-            
+          <div className="bg-white dark:bg-card rounded-2xl shadow-sm border border-slate-200 dark:border-card-border p-8">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">Join a League</h2>
+            <p className="text-sm text-slate-500 dark:text-muted mb-6">Enter the 6-character code provided by your Commissioner.</p>
+
             <form onSubmit={handleJoinLeague} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Invite Code</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Invite Code</label>
                 <input
                   type="text"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
                   placeholder="e.g., X7B9TQ"
-                  className="w-full px-4 py-3 border-2 border-slate-300 text-slate-900 font-mono font-bold uppercase rounded-lg focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-mono font-bold uppercase rounded-lg focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 placeholder:text-slate-400"
                   required
                 />
               </div>
-              <button type="submit" className="w-full py-3 bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-300 rounded-lg font-bold tracking-wide transition-colors">
+              <button type="submit" className="w-full py-3 bg-white dark:bg-card hover:bg-slate-50 dark:bg-background text-slate-900 dark:text-white border-2 border-slate-300 dark:border-slate-600 rounded-lg font-bold tracking-wide transition-colors">
                 Join League
               </button>
             </form>

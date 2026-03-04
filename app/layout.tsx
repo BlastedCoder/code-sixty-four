@@ -4,7 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthHeader from "@/components/AuthHeader";
 import Footer from '@/components/Footer';
-
+import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,21 +13,35 @@ export const metadata: Metadata = {
   description: "Tournament Draft Pool",
 };
 
+// Inline script to prevent flash of wrong theme on page load
+const themeScript = `
+  (function() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className={`${inter.className} bg-background text-foreground`}>
         <div className="flex flex-col min-h-screen">
-        <AuthHeader /> {/* 2. Add the header here */}
-        <main className="flex-grow">
-        {children}
-        </main>
-        <Footer />
+          <AuthHeader />
+          <main className="flex-grow">
+            {children}
+          </main>
+          <Footer />
         </div>
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

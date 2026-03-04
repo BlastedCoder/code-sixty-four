@@ -1,5 +1,6 @@
-// components/DevPanel.tsx
+﻿// components/DevPanel.tsx
 'use client';
+import { toast } from 'sonner';
 
 import React, { useState } from 'react';
 import { 
@@ -41,7 +42,7 @@ export default function DevPanel({ leagueId }: { leagueId: string }) {
 
     } catch (error) {
       console.error(`${actionName} failed:`, error);
-      alert(`${actionName} failed. Check console.`);
+      toast.error(`${actionName} failed. Check console.`);
     }
     setLoadingAction(null);
   };

@@ -16,7 +16,7 @@ export default function JoinLeaguePage() {
     const joinLeague = async () => {
       // 1. Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         // Store the invite code in local storage to join after they log in
         localStorage.setItem('pending_invite_code', code as string);
@@ -24,7 +24,7 @@ export default function JoinLeaguePage() {
         return;
       }
 
-      // 1. Find the league AND count current members
+      // 2. Find the league AND count current members
       const { data: league, error: leagueError } = await supabase
         .from('leagues')
         .select(`
@@ -37,20 +37,34 @@ export default function JoinLeaguePage() {
         .eq('invite_code', code)
         .single();
 
-      // FIX 1: Always check for errors/null BEFORE checking properties like status
+      // Always check for errors/null BEFORE checking properties like status
       if (leagueError || !league) {
         setStatus('error');
         setMessage('Invalid invite code.');
         return;
       }
 
-        if (league.status !== 'pre_draft') {
+      if (league.status !== 'pre_draft') {
         setStatus('error');
         setMessage('This league is already in progress or locked.');
         return;
       }
 
-      // 2. Check if the league is full
+      // 3. Check if user is already a member BEFORE attempting insert
+      const { data: existingMember } = await supabase
+        .from('league_members')
+        .select('id')
+        .eq('league_id', league.id)
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (existingMember) {
+        // Already a member — redirect directly (status check above still applies)
+        router.push(`/leagues/${league.id}`);
+        return;
+      }
+
+      // 4. Check if the league is full
       const currentCount = league.league_members[0]?.count || 0;
       if (currentCount >= league.max_members) {
         setStatus('error');
@@ -58,17 +72,17 @@ export default function JoinLeaguePage() {
         return;
       }
 
-      // 3. Proceed with the insertion if not full
+      // 5. Proceed with the insertion if not full
       const { error: joinError } = await supabase
         .from('league_members')
         .insert({
-            league_id: league.id,
-            user_id: session.user.id,
+          league_id: league.id,
+          user_id: session.user.id,
         });
 
       if (joinError) {
-        // Handle case where they are already in the league
-        if (joinError.code === '23505') { 
+        // Handle race condition where they join between our check and insert
+        if (joinError.code === '23505') {
           router.push(`/leagues/${league.id}`);
           return;
         }
@@ -107,7 +121,7 @@ export default function JoinLeaguePage() {
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
             <h1 className="text-xl font-bold text-slate-800">Oops!</h1>
             <p className="text-slate-600 font-medium">{message}</p>
-            <button 
+            <button
               onClick={() => router.push('/dashboard')}
               className="mt-4 px-6 py-2 bg-slate-900 text-white rounded-xl font-bold"
             >
