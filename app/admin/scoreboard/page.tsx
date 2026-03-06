@@ -1,4 +1,6 @@
+﻿// app/admin/scoreboard/page.tsx
 'use client';
+import { toast } from 'sonner';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -55,13 +57,15 @@ export default function ScoreboardAdmin() {
     const s2 = parseInt(scores[game.id]?.team2);
 
     if (isNaN(s1) || isNaN(s2) || s1 === s2) {
-      alert("Please enter valid, non-tying scores for both teams.");
+      toast.error("Please enter valid, non-tying scores for both teams.");
       return;
     }
 
-    if (!window.confirm(`Finalize game? ${game.team1.name} (${s1}) vs ${game.team2.name} (${s2})`)) return;
-
-    setIsProcessing(game.id);
+    toast(`Finalize: ${game.team1.name} (${s1}) vs ${game.team2.name} (${s2})?`, {
+      action: {
+        label: 'Submit',
+        onClick: async () => {
+          setIsProcessing(game.id);
     const winnerId = s1 > s2 ? game.team1.id : game.team2.id;
     const loserId = s1 > s2 ? game.team2.id : game.team1.id;
 
@@ -82,45 +86,49 @@ export default function ScoreboardAdmin() {
       }
 
       setGames(prev => prev.filter(g => g.id !== game.id));
-    } catch (err) {
-      alert("Something went wrong updating the database.");
+          } catch (err) {
+            toast.error("Something went wrong updating the database.");
     }
-    setIsProcessing(null);
+          setIsProcessing(null);
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => {} },
+    });
   };
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-8 h-8 animate-spin text-slate-800" /></div>;
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-background"><Loader2 className="w-8 h-8 animate-spin text-slate-800" /></div>;
 
   const renderGameCard = (game: any) => (
-    <div key={game.id} className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-      <div className="text-sm font-bold text-slate-400 w-full md:w-20 text-center md:text-left uppercase tracking-widest">
+    <div key={game.id} className="bg-white dark:bg-card rounded-xl p-4 border border-slate-200 dark:border-card-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="text-sm font-bold text-slate-400 dark:text-slate-500 w-full md:w-20 text-center md:text-left uppercase tracking-widest">
         Rnd {game.round}
       </div>
       <div className="flex-1 flex items-center justify-center gap-4 w-full">
         {/* Team 1 */}
         <div className="flex flex-col items-end flex-1">
-          <span className="font-bold text-slate-800 mb-2 truncate max-w-[120px] sm:max-w-full">
+          <span className="font-bold text-slate-800 dark:text-white mb-2 truncate max-w-[120px] sm:max-w-full">
             <span className="text-slate-400 text-xs mr-2">{game.team1.seed}</span>{game.team1.name}
           </span>
           <input 
             type="number" 
             placeholder="Score"
             // NEW: High Contrast Classes Added Here
-            className="w-20 text-center font-black text-lg p-2 bg-slate-50 border-2 border-slate-400 text-slate-900 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-inner outline-none placeholder:text-slate-400"
+            className="w-20 text-center font-black text-lg p-2 bg-slate-50 dark:bg-background border-2 border-slate-400 dark:border-slate-600 text-slate-900 dark:text-white rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-inner outline-none placeholder:text-slate-400"
             value={scores[game.id]?.team1 || ''}
             onChange={(e) => handleScoreChange(game.id, 'team1', e.target.value)}
           />
         </div>
-        <span className="text-slate-300 font-extrabold text-xl px-2">VS</span>
+        <span className="text-slate-300 dark:text-slate-600 font-extrabold text-xl px-2">VS</span>
         {/* Team 2 */}
         <div className="flex flex-col items-start flex-1">
-          <span className="font-bold text-slate-800 mb-2 truncate max-w-[120px] sm:max-w-full">
+          <span className="font-bold text-slate-800 dark:text-white mb-2 truncate max-w-[120px] sm:max-w-full">
             {game.team2.name}<span className="text-slate-400 text-xs ml-2">{game.team2.seed}</span>
           </span>
           <input 
             type="number" 
             placeholder="Score"
             // NEW: High Contrast Classes Added Here
-            className="w-20 text-center font-black text-lg p-2 bg-slate-50 border-2 border-slate-400 text-slate-900 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-inner outline-none placeholder:text-slate-400"
+            className="w-20 text-center font-black text-lg p-2 bg-slate-50 dark:bg-background border-2 border-slate-400 dark:border-slate-600 text-slate-900 dark:text-white rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-inner outline-none placeholder:text-slate-400"
             value={scores[game.id]?.team2 || ''}
             onChange={(e) => handleScoreChange(game.id, 'team2', e.target.value)}
           />
@@ -130,7 +138,7 @@ export default function ScoreboardAdmin() {
         <button 
           onClick={() => handleSubmitScore(game)}
           disabled={isProcessing === game.id || !scores[game.id]?.team1 || !scores[game.id]?.team2}
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-lg transition-all disabled:opacity-50 shadow-md"
+          className="w-full bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-lg transition-all disabled:opacity-50 shadow-md"
         >
           {isProcessing === game.id ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Save Final'}
         </button>
@@ -139,15 +147,15 @@ export default function ScoreboardAdmin() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 md:p-12">
+    <main className="min-h-screen bg-slate-50 dark:bg-background p-6 md:p-12">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex justify-between items-center border-b border-slate-200 pb-4">
-          <div><h1 className="text-3xl font-extrabold text-slate-900">Scoreboard Admin</h1></div>
-          <button onClick={fetchActiveGames} className="text-sm font-bold bg-white border border-slate-200 hover:bg-slate-100 px-4 py-2 rounded-lg transition-colors shadow-sm">Refresh Games</button>
+        <div className="flex justify-between items-center border-b border-slate-200 dark:border-card-border pb-4">
+          <div><h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Scoreboard Admin</h1></div>
+          <button onClick={fetchActiveGames} className="text-sm font-bold bg-white dark:bg-card border border-slate-200 dark:border-card-border hover:bg-slate-100 dark:hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors shadow-sm">Refresh Games</button>
         </div>
 
         {games.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-sm"><p className="text-slate-500 font-medium">No active games ready for scoring right now.</p></div>
+          <div className="bg-white dark:bg-card rounded-2xl p-12 text-center border border-slate-200 dark:border-card-border shadow-sm"><p className="text-slate-500 dark:text-muted font-medium">No active games ready for scoring right now.</p></div>
         ) : (
           <div className="space-y-8">
             {/* Group Rounds 1-4 by Region */}
@@ -156,7 +164,7 @@ export default function ScoreboardAdmin() {
               if (regionGames.length === 0) return null;
               return (
                 <div key={region} className="space-y-4">
-                  <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider border-b-2 border-slate-200 pb-2 flex items-center">
+                  <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider border-b-2 border-slate-200 dark:border-slate-700 pb-2 flex items-center">
                     <span className="bg-slate-300 w-2 h-2 rounded-full mr-2"></span>{region} Region
                   </h3>
                   <div className="grid gap-4">{regionGames.map(renderGameCard)}</div>
@@ -167,7 +175,7 @@ export default function ScoreboardAdmin() {
             {/* Group Final Four & Championship */}
             {games.filter(g => g.round > 4).length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider border-b-2 border-slate-200 pb-2 flex items-center">
+                <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider border-b-2 border-slate-200 dark:border-slate-700 pb-2 flex items-center">
                   <span className="bg-emerald-400 w-2 h-2 rounded-full mr-2"></span>Final Four & Championship
                 </h3>
                 <div className="grid gap-4">{games.filter(g => g.round > 4).map(renderGameCard)}</div>

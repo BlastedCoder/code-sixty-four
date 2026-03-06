@@ -1,4 +1,4 @@
-// Path: app/api/dev/simulate-pick/route.ts
+﻿// app/api/dev/simulate-pick/route.ts
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';

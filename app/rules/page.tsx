@@ -1,3 +1,4 @@
+// app/rules/page.tsx
 import Link from 'next/link';
 import { Users, Repeat, Trophy, Medal } from 'lucide-react';
 
@@ -6,7 +7,7 @@ export default function RulesPage() {
     {
       icon: <Users className="w-8 h-8 text-emerald-600" />,
       title: "1. Squad Up",
-      description: "Join an 8-player league. You will be competing directly against the other 7 people in your specific draft room."
+      description: "Join an 8-player league. You will be competing directly against the other 7 people in your specific war room."
     },
     {
       icon: <Repeat className="w-8 h-8 text-emerald-600" />,
@@ -26,13 +27,13 @@ export default function RulesPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-6">
+    <main className="min-h-screen bg-slate-50 dark:bg-background py-12 px-6">
       <div className="max-w-3xl mx-auto space-y-12">
-        
+
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">How to Play</h1>
-          <p className="text-lg text-slate-500 max-w-xl mx-auto">
+          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">How to Play</h1>
+          <p className="text-lg text-slate-500 dark:text-muted max-w-xl mx-auto">
             Forget busted brackets. Code Sixty Four is a live-drafting tournament pool where every single game matters.
           </p>
         </div>
@@ -40,12 +41,12 @@ export default function RulesPage() {
         {/* Steps Grid */}
         <div className="grid sm:grid-cols-2 gap-6">
           {steps.map((step, index) => (
-            <div key={index} className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center space-y-4 hover:border-emerald-500 hover:shadow-md transition-all">
-              <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-2">
+            <div key={index} className="bg-white dark:bg-card p-8 rounded-2xl border border-slate-200 dark:border-card-border shadow-sm flex flex-col items-center text-center space-y-4 hover:border-emerald-500 hover:shadow-md transition-all">
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mb-2">
                 {step.icon}
               </div>
-              <h3 className="text-xl font-bold text-slate-900">{step.title}</h3>
-              <p className="text-slate-500 leading-relaxed text-sm">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">{step.title}</h3>
+              <p className="text-slate-500 dark:text-muted leading-relaxed text-sm">
                 {step.description}
               </p>
             </div>
@@ -56,7 +57,7 @@ export default function RulesPage() {
         <div className="bg-slate-900 rounded-2xl p-8 text-center text-white space-y-6 shadow-lg">
           <h2 className="text-2xl font-bold">Ready to hit the war room?</h2>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link 
+            <Link
               href="/dashboard"
               className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-extrabold rounded-xl transition-colors"
             >

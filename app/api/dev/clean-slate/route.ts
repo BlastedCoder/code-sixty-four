@@ -1,4 +1,4 @@
-// Path: app/api/dev/clean-slate/route.ts
+﻿// app/api/dev/clean-slate/route.ts
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';

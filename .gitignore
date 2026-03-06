@@ -31,3 +31,6 @@ bun.lockb
 
 # macOS System Files
 .DS_Store
+
+# Credentials
+credentials.txt

@@ -1,4 +1,4 @@
-// Path: app/api/dev/reset-bracket/route.ts
+﻿// app/api/dev/reset-bracket/route.ts
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';

@@ -1,15 +1,21 @@
+﻿// app/leagues/[id]/draft/page.tsx
 'use client';
+import { toast } from 'sonner';
 
 import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Copy, CheckCircle, Loader2 } from 'lucide-react';
+import {
+  Menu, X, CheckCircle, ShieldAlert, Trophy, ShieldHalf,
+  SendHorizontal, Loader2, Volume2, VolumeX, Mail, Search, Info, MessageSquare, Check, Share2
+} from 'lucide-react';
 import DraftBoard from '@/components/DraftBoard';
 import DevPanel from '@/components/DevPanel';
+import FloatingChat from '@/components/FloatingChat';
 
 export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: leagueId } = use(params);
-  
+
   const [league, setLeague] = useState<any>(null);
   const [teams, setTeams] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -18,9 +24,9 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
-  
+
   // NEW: Loading state to prevent hydration errors
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -29,15 +35,15 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
       if (!session) return router.push('/login');
       setUser(session.user);
 
-      const [ 
-        { data: lData, error: lError }, 
-        { data: tData }, 
-        { data: mData, error: mError }, 
-        { data: dpData, error: dpError } 
+      const [
+        { data: lData, error: lError },
+        { data: tData },
+        { data: mData, error: mError },
+        { data: dpData, error: dpError }
       ] = await Promise.all([
         supabase.from('leagues').select('*').eq('id', leagueId).single(),
         supabase.from('teams').select('*').order('id', { ascending: true }),
-        supabase.from('league_members').select('*, profiles(display_name)').eq('league_id', leagueId),
+        supabase.from('league_members').select('*, profiles(display_name, avatar_url)').eq('league_id', leagueId),
         supabase.from('draft_picks').select('*').eq('league_id', leagueId)
       ]);
 
@@ -51,11 +57,8 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
         if (!isMember) return router.push('/leagues');
       }
 
-      // 🛡️ THE SECOND BOUNCER: Check if the draft has actually started
-      if (lData && lData.status === 'pre_draft') {
-        alert("The draft hasn't started yet!");
-        return router.push(`/leagues/${leagueId}`);
-      }
+      // Note: pre_draft is now allowed — commissioners will see a "Start Draft" button
+      // and all players can see the war room before it begins
 
       if (lData) setLeague(lData);
       if (tData) setTeams(tData);
@@ -63,17 +66,23 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
       if (dpData) setDraftPicks(dpData);
 
       // Tell the component it is safe to render the board now
-      setLoading(false); 
+      setLoading(false);
     };
 
     loadDraftRoom();
 
-    // Set up WebSockets
+    // Set up WebSockets — handles both new picks (INSERT) and undone picks (DELETE)
     const channel = supabase.channel(`draft-room-${leagueId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'draft_picks', filter: `league_id=eq.${leagueId}` }, 
-        (payload) => setDraftPicks((prev) => [...prev, payload.new])
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'draft_picks', filter: `league_id=eq.${leagueId}` },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setDraftPicks((prev) => [...prev, payload.new]);
+          } else if (payload.eventType === 'DELETE') {
+            setDraftPicks((prev) => prev.filter((p) => p.id !== payload.old.id));
+          }
+        }
       )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leagues', filter: `id=eq.${leagueId}` }, 
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leagues', filter: `id=eq.${leagueId}` },
         (payload) => setLeague(payload.new)
       )
       .subscribe();
@@ -86,20 +95,29 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   // 1. Make a Pick (Now supports Proxy Drafting)
   const handleDraftTeam = async (teamId: number, pickUserId: string, canDraft: boolean) => {
     if (!league || !user) return;
-    if (!canDraft) return alert("You cannot make a pick right now.");
+    if (!canDraft) return toast.error("You cannot make a pick right now.");
 
-    // Insert the pick using the ID of the person ON THE CLOCK
     const { error: pickError } = await supabase.from('draft_picks').insert({
       league_id: league.id,
-      user_id: pickUserId, 
+      user_id: pickUserId,
       team_id: teamId,
       pick_number: league.current_pick
     });
 
-    if (pickError) return alert('Error making pick: ' + pickError.message);
+    if (pickError) return toast.error('making pick: ' + pickError.message);
+
+    // Also dispatch a system chat message announcing the pick
+    const teamName = teams.find(t => t.id === teamId)?.name || 'a team';
+    const playerName = members.find((u: any) => u.user_id === pickUserId)?.profiles?.display_name || 'A player';
+
+    await supabase.from('league_messages').insert({
+      league_id: league.id,
+      user_id: null, // System message (no associated user profile)
+      message: `🏀 **${playerName}** selected **${teamName}** with Pick #${league.current_pick}!`
+    });
 
     await supabase.from('leagues')
-      .update({ current_pick: league.current_pick + 1 })
+      .update({ current_pick: league.current_pick + 1, current_pick_started_at: league.draft_timer_seconds > 0 ? new Date().toISOString() : null })
       .eq('id', league.id);
   };
 
@@ -107,23 +125,68 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   const handleUndoPick = async () => {
     if (league.current_pick <= 1) return;
     const pickToUndo = league.current_pick - 1;
-    
+
     await supabase.from('draft_picks')
       .delete()
       .eq('league_id', league.id)
       .eq('pick_number', pickToUndo);
-      
+
     await supabase.from('leagues')
       .update({ current_pick: pickToUndo })
       .eq('id', league.id);
   };
 
   // 3. Pause / Resume Draft
-  const handleTogglePause = async () => {
-    const newStatus = league.status === 'paused' ? 'drafting' : 'paused';
-    await supabase.from('leagues')
-      .update({ status: newStatus })
-      .eq('id', league.id);
+  const handleTogglePause = async (secondsLeft?: number) => {
+    try {
+      const isPausing = league.status !== 'paused';
+      const newStatus = isPausing ? 'paused' : 'drafting';
+      let updates: any = { status: newStatus };
+
+      if (league.draft_timer_seconds > 0) {
+        if (isPausing && secondsLeft !== undefined) {
+          // Store the remaining seconds explicitly
+          updates.remaining_seconds_on_pause = Math.max(0, Math.round(secondsLeft));
+        } else if (!isPausing) {
+          // Resume: calculate a new start time so the timer picks up where it left off
+          const saved = league.remaining_seconds_on_pause ?? league.draft_timer_seconds;
+          const elapsed = league.draft_timer_seconds - saved;
+          updates.current_pick_started_at = new Date(Date.now() - (elapsed * 1000)).toISOString();
+          updates.remaining_seconds_on_pause = null;
+        }
+      }
+
+      const { error } = await supabase.from('leagues')
+        .update(updates)
+        .eq('id', league.id);
+
+      if (error) {
+        console.error('Pause error:', error);
+        toast.error('Failed to toggle pause: ' + error.message);
+      }
+    } catch (err: any) {
+      console.error('Pause exception:', err);
+      toast.error('Error toggling pause: ' + err.message);
+    }
+  };
+
+  const handleStartDraft = async () => {
+    try {
+      const timerSec = league?.draft_timer_seconds || 0;
+      const { error } = await supabase
+        .from('leagues')
+        .update({
+          status: 'drafting',
+          current_pick: 1,
+          current_pick_started_at: timerSec > 0 ? new Date().toISOString() : null
+        })
+        .eq('id', league.id);
+
+      if (error) throw error;
+      toast.success('Draft started! Let\'s go!');
+    } catch (err: any) {
+      toast.error('Failed to start draft: ' + err.message);
+    }
   };
 
   const handleFinalizeDraft = async () => {
@@ -136,7 +199,7 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
       .eq('league_id', league.id);
 
     if (countError || count !== 64) {
-      alert(`Cannot finalize. Found ${count}/64 picks.`);
+      toast.error(`Cannot finalize. Found ${count}/64 picks.`);
       // setIsFinalizing(false);
       return;
     }
@@ -148,12 +211,12 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
 
     if (!error) {
       // 2. AWAIT THE EMAILS FIRST
-      await sendDraftResults(); 
-      
+      await sendDraftResults();
+
       // 3. THEN NAVIGATE AWAY
       router.push(`/leagues/${league.id}`);
     } else {
-      alert("Error locking league. Please try again.");
+      toast.error("locking league. Please try again.");
       // setIsFinalizing(false);
     }
   };
@@ -167,18 +230,34 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
       });
 
       if (!response.ok) {
-        console.error("Failed to send draft emails");
-        alert("League finalized, but the emails failed to send.");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to send draft emails:", errorData);
+        toast.error(`Email failed: ${errorData.error || response.statusText}`);
       } else {
-        alert("Draft complete! Results emailed to the league.");
+        toast.success("Draft complete! Results emailed to the league.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(`Email exception: ${err.message}`);
     }
   };
 
-  const copyInviteLink = () => {
+  const handleShareInvite = async () => {
     const inviteUrl = `${window.location.origin}/join/${league.invite_code}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join my Code Sixty Four League!',
+          text: `Join my 8-player bracket for ${league?.name}!`,
+          url: inviteUrl,
+        });
+        return; // Early return if native share succeeded
+      } catch (err) {
+        console.log("Share cancelled or failed, falling back to clipboard", err);
+      }
+    }
+
     navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -187,13 +266,13 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   // --- RENDERING GUARDS ---
 
   if (fetchError) return <div className="p-12 text-center text-red-600 font-bold bg-red-50 m-6 rounded-lg">{fetchError}</div>;
-  
+
   // FIX: Wait for data before rendering the board to avoid Hydration Error
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
-        <h2 className="text-xl font-bold text-slate-700">Loading Draft Board...</h2>
+        <h2 className="text-xl font-bold text-slate-700 dark:text-slate-300">Loading Draft Board...</h2>
       </div>
     );
   }
@@ -202,69 +281,55 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
   if (!teams || teams.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="p-8 text-center text-red-500 font-bold bg-white border border-red-200 rounded-xl shadow-sm">
-          Error: No tournament teams found in the database. 
+        <div className="p-8 text-center text-red-500 font-bold bg-white dark:bg-card border border-red-200 rounded-xl shadow-sm">
+          Error: No tournament teams found in the database.
         </div>
       </div>
     );
   }
 
-  return (
-    <main className="min-h-screen bg-slate-50 p-6 md:p-12">
-      <div className="max-w-5xl mx-auto space-y-8">
-        
-        {/* League Header */}
-        <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
-              {league?.name || 'League'}
-            </h1>
-            <div className="flex items-center mt-2 space-x-3">
-               <span className="text-slate-500 font-medium">Invite Code:</span>
-               <code className="bg-slate-200 text-slate-800 px-2 py-0.5 rounded font-mono font-bold">
-                 {league?.invite_code}
-               </code>
-            </div>
-          </div>
+  const inviteCodeUrl = `${window.location.origin}/join/${league?.invite_code}`;
 
-          {/* Copy Invite Link Button */}
-          <button
-            onClick={copyInviteLink}
-            className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm border ${
-              copied 
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            {copied ? (
-              <>
-                <CheckCircle size={18} />
-                <span>Link Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy size={18} />
-                <span>Invite Friends</span>
-              </>
-            )}
-          </button>
+  return (
+    <main className="min-h-screen bg-slate-50 dark:bg-background p-6 md:p-12">
+      <div className="max-w-5xl mx-auto space-y-8">
+
+        {/* League Header */}
+        <section className="flex items-center justify-between gap-4">
+          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            {league?.name || 'League'}
+          </h1>
+          {league?.invite_code && (
+            <button
+              onClick={handleShareInvite}
+              className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-700 flex items-center space-x-2 transition-colors flex-1 justify-center whitespace-nowrap overflow-hidden max-w-[250px]"
+              title="Share Invite Link"
+            >
+              <span className="truncate">{inviteCodeUrl}</span>
+              {copied ? <Check size={16} className="text-emerald-400 flex-shrink-0" /> : <Share2 size={16} className="text-slate-400 flex-shrink-0" />}
+            </button>
+          )}
         </section>
 
         {/* FIX: DraftBoard passed correctly with all necessary props */}
-        <DraftBoard 
+        <DraftBoard
           league={league}
           teams={teams}
           members={members}
           draftPicks={draftPicks}
           currentUser={user}
+          timerSeconds={league?.draft_timer_seconds || 0}
+          pickStartedAt={league?.current_pick_started_at || null}
           onDraftTeam={handleDraftTeam}
           onUndoPick={handleUndoPick}
           onTogglePause={handleTogglePause}
-          onFinalizeDraft={handleFinalizeDraft} 
+          onFinalizeDraft={handleFinalizeDraft}
+          onStartDraft={handleStartDraft}
         />
 
       </div>
       <DevPanel leagueId={leagueId} />
+      <FloatingChat leagueId={league?.id} currentUser={user} />
     </main>
   );
 }
