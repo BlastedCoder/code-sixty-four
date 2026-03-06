@@ -12,7 +12,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<any>(null);
   const [myLeagues, setMyLeagues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // New State for Editing
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState('');
@@ -23,15 +23,15 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadDashboard = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         router.push('/login');
         return;
       }
-      
+
       setUser(session.user);
 
-      const [ { data: profileData }, { data: leaguesData, error: leaguesError } ] = await Promise.all([
+      const [{ data: profileData }, { data: leaguesData, error: leaguesError }] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', session.user.id).single(),
         supabase.from('league_members')
           .select(`
@@ -50,20 +50,17 @@ export default function DashboardPage() {
           .eq('user_id', session.user.id)
       ]);
 
-      // Let's log exactly what the database returns so we can debug!
-      console.log("Fetched Leagues Data:", leaguesData);
-      if (leaguesError) console.error("League Fetch Error:", leaguesError);
 
       if (profileData) {
         setProfile(profileData);
-        setNewName(profileData.display_name || ''); 
+        setNewName(profileData.display_name || '');
       }
-      
+
       // Only set leagues if we actually got valid data back
       if (leaguesData) {
         setMyLeagues(leaguesData);
       }
-      
+
       setLoading(false);
     };
 
@@ -93,7 +90,7 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-background p-6 md:p-12">
       <div className="max-w-5xl mx-auto space-y-8">
-        
+
         {/* Account Information Card */}
         <section className="bg-white dark:bg-card rounded-2xl shadow-sm border border-slate-200 dark:border-card-border p-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center space-x-6">
@@ -103,21 +100,21 @@ export default function DashboardPage() {
             <div>
               {isEditing ? (
                 <div className="flex items-center gap-2">
-                  <input 
+                  <input
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     className="text-2xl font-bold text-slate-900 dark:text-white border-b-2 border-emerald-500 outline-none bg-slate-50 dark:bg-background px-2 py-1 rounded"
                     autoFocus
                   />
-                  <button 
+                  <button
                     onClick={handleUpdateName}
                     disabled={updateLoading}
                     className="p-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
                   >
                     <Check size={20} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => { setIsEditing(false); setNewName(profile.display_name); }}
                     className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-200"
                   >
@@ -129,7 +126,7 @@ export default function DashboardPage() {
                   <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                     {profile?.display_name || 'Player'}
                   </h1>
-                  <button 
+                  <button
                     onClick={() => setIsEditing(true)}
                     className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all opacity-0 group-hover:opacity-100"
                   >
@@ -141,7 +138,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link 
+            <Link
               href="/dashboard/settings"
               className="px-6 py-3 bg-white dark:bg-card text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold rounded-lg transition-colors border border-slate-200 dark:border-card-border flex items-center justify-center gap-2"
             >
@@ -158,8 +155,8 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">My Leagues</h2>
               <p className="text-slate-500 dark:text-muted text-sm mt-1">Manage your active pools and drafts.</p>
             </div>
-            <Link 
-              href="/leagues" 
+            <Link
+              href="/leagues"
               className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-lg shadow-sm transition-colors"
             >
               + Join / Create
@@ -181,8 +178,8 @@ export default function DashboardPage() {
                 if (!league) return null; // Skip if the database join failed
 
                 return (
-                  <Link 
-                    href={`/leagues/${ml.league_id}`} 
+                  <Link
+                    href={`/leagues/${ml.league_id}`}
                     key={ml.league_id}
                     className="bg-white dark:bg-card border border-slate-200 dark:border-card-border rounded-xl p-6 shadow-sm hover:ring-2 hover:ring-emerald-500 transition-all cursor-pointer flex flex-col justify-between h-full group"
                   >
@@ -191,32 +188,31 @@ export default function DashboardPage() {
                         <h3 className="font-extrabold text-slate-900 dark:text-white text-xl group-hover:text-emerald-700 transition-colors">
                           {league.name}
                         </h3>
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          league.archived_at ? 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300' :
-                          league.status === 'pre_draft' ? 'bg-amber-100 text-amber-800' :
-                          league.status === 'drafting' ? 'bg-emerald-100 text-emerald-800' :
-                          'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                        }`}>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${league.archived_at ? 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300' :
+                            league.status === 'pre_draft' ? 'bg-amber-100 text-amber-800' :
+                              league.status === 'drafting' ? 'bg-emerald-100 text-emerald-800' :
+                                'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                          }`}>
                           {league.archived_at ? 'Archived' : league.status?.replace('_', ' ')}
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
                       <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Capacity</span>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                            {/* FIXED: Now it reads from league.member_count! */}
-                            {league.member_count || 1} / {league.max_members || 8} Players
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Capacity</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {/* FIXED: Now it reads from league.member_count! */}
+                          {league.member_count || 1} / {league.max_members || 8} Players
+                        </span>
+                        {league.season_year && (
+                          <span className="text-xs font-bold text-slate-500 dark:text-muted">
+                            {league.season_year} Season
                           </span>
-                          {league.season_year && (
-                            <span className="text-xs font-bold text-slate-500 dark:text-muted">
-                              {league.season_year} Season
-                            </span>
-                          )}
+                        )}
                       </div>
                       <span className="text-sm font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
-                          Go to League &rarr;
+                        Go to League &rarr;
                       </span>
                     </div>
                   </Link>

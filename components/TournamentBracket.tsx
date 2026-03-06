@@ -44,7 +44,7 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
           .from('draft_picks')
           .select(`
             team_id,
-            profiles(display_name)
+            profiles(display_name, avatar_url)
           `)
           .eq('league_id', leagueId)
       ]);
@@ -78,33 +78,33 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
 
   // Helper to render a single game card
   const renderGameCard = (game: any) => (
-    <div key={game.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+    <div key={game.id} className="bg-white dark:bg-card rounded-xl shadow-sm border border-slate-200 dark:border-card-border overflow-hidden flex flex-col">
       {/* Team 1 Row */}
-      <div className={`flex justify-between items-center p-3 border-b border-slate-100 ${game.is_completed && game.winner_id !== game.team1?.id ? 'opacity-40 bg-slate-50' : ''
+      <div className={`flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700 ${game.is_completed && game.winner_id !== game.team1?.id ? 'opacity-40 bg-slate-50 dark:bg-slate-800' : ''
         }`}>
         <div className="flex flex-col truncate pr-2">
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold text-slate-400 w-4">{game.team1?.seed || '-'}</span>
-            <span className={`text-sm font-bold truncate ${game.winner_id === game.team1?.id ? 'text-emerald-700' : 'text-slate-800'}`}>
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 w-4">{game.team1?.seed || '-'}</span>
+            <span className={`text-sm font-bold truncate ${game.winner_id === game.team1?.id ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}`}>
               {game.team1?.name || 'TBD'}
             </span>
           </div>
           {game.team1 && (
-            <span className="text-[10px] font-semibold text-slate-400 ml-6 truncate">
+            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 ml-6 truncate">
               {getOwner(game.team1.id)}
             </span>
           )}
         </div>
-        <div className="font-extrabold text-slate-700">{game.team1_score ?? '-'}</div>
+        <div className="font-extrabold text-slate-700 dark:text-slate-300">{game.team1_score ?? '-'}</div>
       </div>
 
       {/* Team 2 Row */}
-      <div className={`flex justify-between items-center p-3 ${game.is_completed && game.winner_id !== game.team2?.id ? 'opacity-40 bg-slate-50' : ''
+      <div className={`flex justify-between items-center p-3 ${game.is_completed && game.winner_id !== game.team2?.id ? 'opacity-40 bg-slate-50 dark:bg-slate-800' : ''
         }`}>
         <div className="flex flex-col truncate pr-2">
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold text-slate-400 w-4">{game.team2?.seed || '-'}</span>
-            <span className={`text-sm font-bold truncate ${game.winner_id === game.team2?.id ? 'text-emerald-700' : 'text-slate-800'}`}>
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 w-4">{game.team2?.seed || '-'}</span>
+            <span className={`text-sm font-bold truncate ${game.winner_id === game.team2?.id ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}`}>
               {game.team2?.name || 'TBD'}
             </span>
           </div>
@@ -114,23 +114,23 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
             </span>
           )}
         </div>
-        <div className="font-extrabold text-slate-700">{game.team2_score ?? '-'}</div>
+        <div className="font-extrabold text-slate-700 dark:text-slate-300">{game.team2_score ?? '-'}</div>
       </div>
     </div>
   );
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-white dark:bg-card rounded-2xl shadow-sm border border-slate-200 dark:border-card-border overflow-hidden">
 
       {/* Round Navigation Tabs */}
-      <div className="flex overflow-x-auto border-b border-slate-200 scrollbar-hide bg-slate-50">
+      <div className="flex overflow-x-auto border-b border-slate-200 dark:border-card-border scrollbar-hide bg-slate-50 dark:bg-background">
         {[1, 2, 3, 4, 5, 6].map((roundNum) => (
           <button
             key={roundNum}
             onClick={() => setActiveRound(roundNum)}
             className={`whitespace-nowrap px-6 py-4 text-sm font-extrabold transition-colors ${activeRound === roundNum
-                ? 'text-emerald-600 border-b-4 border-emerald-500 bg-white'
-                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border-b-4 border-transparent'
+              ? 'text-emerald-600 dark:text-emerald-400 border-b-4 border-emerald-500 bg-white dark:bg-card'
+              : 'text-slate-500 dark:text-muted hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border-b-4 border-transparent'
               }`}
           >
             {ROUND_NAMES[roundNum as keyof typeof ROUND_NAMES]}
@@ -139,7 +139,7 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
       </div>
 
       {/* Matchups Grid */}
-      <div className="p-4 md:p-6 bg-slate-100">
+      <div className="p-4 md:p-6 bg-slate-100 dark:bg-background">
 
         {/* Rounds 1-4: Grouped by Region */}
         {activeRound <= 4 ? (
@@ -152,8 +152,8 @@ export default function TournamentBracket({ leagueId }: { leagueId: string }) {
 
               return (
                 <div key={regionName} className="space-y-4">
-                  <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider border-b-2 border-slate-200 pb-2 flex items-center">
-                    <span className="bg-slate-200 w-2 h-2 rounded-full mr-2"></span>
+                  <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider border-b-2 border-slate-200 dark:border-slate-700 pb-2 flex items-center">
+                    <span className="bg-slate-200 dark:bg-slate-600 w-2 h-2 rounded-full mr-2"></span>
                     {regionName} Region
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

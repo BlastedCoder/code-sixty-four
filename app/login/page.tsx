@@ -18,7 +18,9 @@ function LoginPageInner() {
   const [isResetting, setIsResetting] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get('returnTo') || '/';
+  // Sanitize returnTo to prevent open redirect attacks
+  const rawReturnTo = searchParams.get('returnTo') || '/';
+  const returnTo = rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/';
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();

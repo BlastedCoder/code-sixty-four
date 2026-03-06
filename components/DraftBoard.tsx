@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import DraftTimer from './DraftTimer';
+import Avatar from './Avatar';
 
 export default function DraftBoard({
   league,
@@ -14,6 +15,7 @@ export default function DraftBoard({
   onUndoPick,
   onTogglePause,
   onFinalizeDraft,
+  onStartDraft,
   currentUser,
   timerSeconds = 0,
   pickStartedAt = null
@@ -23,6 +25,7 @@ export default function DraftBoard({
   const isDraftComplete = currentPick > 64;
   const isCommissioner = league?.created_by === currentUser?.id;
   const isPaused = league?.status === 'paused';
+  const isPreDraft = league?.status === 'pre_draft';
 
   // State for the inline confirmation step
   const [confirmTeamId, setConfirmTeamId] = useState<number | null>(null);
@@ -61,7 +64,7 @@ export default function DraftBoard({
 
   const userOnTheClock = getPlayerForPick(currentPick);
   const isMyTurn = userOnTheClock?.user_id === currentUser?.id;
-  const canDraft = (isMyTurn || isCommissioner) && !isPaused && !isDraftComplete;
+  const canDraft = (isMyTurn || isCommissioner) && !isPaused && !isDraftComplete && !isPreDraft;
 
   // 3. Generate all 64 picks for the Horizontal Ticker
   const all64Picks = useMemo(() => {
@@ -123,16 +126,31 @@ export default function DraftBoard({
               <span className="text-xs font-extrabold bg-black/20 px-2 py-1 rounded">
                 #{currentPick}
               </span>
+              {!isPaused && userOnTheClock && (
+                <Avatar
+                  src={userOnTheClock.profiles?.avatar_url}
+                  name={userOnTheClock.profiles?.display_name}
+                  size="sm"
+                />
+              )}
               <div>
                 <p className="text-sm font-extrabold">
-                  {isPaused ? '⏸ Draft Paused' : isMyTurn ? '🎯 Your Pick!' : `${userOnTheClock?.profiles?.display_name || 'Player'}'s Turn`}
+                  {isPreDraft ? '⏳ Waiting to Start' : isPaused ? '⏸ Draft Paused' : isMyTurn ? '🎯 Your Pick!' : `${userOnTheClock?.profiles?.display_name || 'Player'}'s Turn`}
                 </p>
                 <p className="text-[10px] opacity-80 font-medium">
                   Round {Math.ceil(currentPick / 8)} • Pick {((currentPick - 1) % 8) + 1} of 8
                 </p>
               </div>
             </div>
-            {isCommissioner && !isPaused && (
+            {isCommissioner && isPreDraft && (
+              <button
+                onClick={onStartDraft}
+                className="px-5 py-2 text-sm font-black bg-emerald-400 hover:bg-emerald-300 text-slate-900 rounded-lg transition-all hover:scale-105 shadow-md"
+              >
+                🏀 Start Draft
+              </button>
+            )}
+            {!isPreDraft && isCommissioner && !isPaused && (
               <div className="flex gap-2">
                 <button onClick={() => onTogglePause(timerSecondsRef.current)} className="px-3 py-1.5 text-xs font-bold bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
                   ⏸ Pause
@@ -142,42 +160,47 @@ export default function DraftBoard({
                 </button>
               </div>
             )}
-            {isCommissioner && isPaused && (
+            {!isPreDraft && isCommissioner && isPaused && (
               <button onClick={() => onTogglePause(timerSecondsRef.current)} className="px-4 py-1.5 text-xs font-bold bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
                 ▶ Resume
               </button>
             )}
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* DRAFT TIMER */}
-      {!isDraftComplete && timerSeconds > 0 && (
-        <div className="px-0 md:px-0">
-          <DraftTimer
-            timerSeconds={timerSeconds}
-            pickStartedAt={pickStartedAt}
-            teams={teams}
-            draftPicks={draftPicks}
-            onAutoPickTeam={(teamId) => onDraftTeam(teamId, userOnTheClock?.user_id, true)}
-            canAutoPick={isCommissioner}
-            isPaused={isPaused}
-            onTick={(s) => { timerSecondsRef.current = s; }}
-          />
-        </div>
-      )}
+      {
+        !isDraftComplete && timerSeconds > 0 && (
+          <div className="px-0 md:px-0">
+            <DraftTimer
+              timerSeconds={timerSeconds}
+              pickStartedAt={pickStartedAt}
+              teams={teams}
+              draftPicks={draftPicks}
+              onAutoPickTeam={(teamId) => onDraftTeam(teamId, userOnTheClock?.user_id, true)}
+              canAutoPick={isCommissioner}
+              isPaused={isPaused}
+              onTick={(s) => { timerSecondsRef.current = s; }}
+            />
+          </div>
+        )
+      }
 
       {/* TOP BAR: Finalize (only when draft is complete) */}
-      {isDraftComplete && isCommissioner && (
-        <div className="flex justify-center bg-white dark:bg-card p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-card-border">
-          <button
-            onClick={onFinalizeDraft}
-            className="px-8 py-3 bg-emerald-600 border border-emerald-700 hover:bg-emerald-700 text-white text-sm font-extrabold rounded-xl shadow-md transition-all"
-          >
-            🏆 Lock League & Start Tournament
-          </button>
-        </div>
-      )}
+      {
+        isDraftComplete && isCommissioner && (
+          <div className="flex justify-center bg-white dark:bg-card p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-card-border">
+            <button
+              onClick={onFinalizeDraft}
+              className="px-8 py-3 bg-emerald-600 border border-emerald-700 hover:bg-emerald-700 text-white text-sm font-extrabold rounded-xl shadow-md transition-all"
+            >
+              🏆 Lock League & Start Tournament
+            </button>
+          </div>
+        )
+      }
 
       {/* THE TICKER: Horizontal Scrolling Timeline (hidden on small mobile, visible md+) */}
       <div className="hidden md:block bg-slate-900 rounded-2xl shadow-inner p-4 overflow-hidden border-4 border-slate-800">
@@ -318,6 +341,6 @@ export default function DraftBoard({
         })}
       </div>
 
-    </div>
+    </div >
   );
 }

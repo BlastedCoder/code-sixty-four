@@ -7,16 +7,21 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import ThemeToggle from './ThemeToggle';
+import Avatar from './Avatar';
 
 export default function AuthHeader() {
   const [user, setUser] = useState<any>(null);
   const [displayName, setDisplayName] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const fetchProfile = async (userId: string) => {
-      const { data } = await supabase.from('profiles').select('display_name').eq('id', userId).single();
-      if (data) setDisplayName(data.display_name);
+      const { data } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', userId).single();
+      if (data) {
+        setDisplayName(data.display_name);
+        setAvatarUrl(data.avatar_url || null);
+      }
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -27,7 +32,7 @@ export default function AuthHeader() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
-      else setDisplayName('');
+      else { setDisplayName(''); setAvatarUrl(null); }
     });
 
     return () => subscription.unsubscribe();
@@ -39,7 +44,7 @@ export default function AuthHeader() {
     router.refresh();
   };
 
-  const initial = displayName ? displayName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || '?';
+
 
   return (
     <div className="w-full bg-white dark:bg-card border-b border-slate-200 dark:border-card-border px-6 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
@@ -59,9 +64,7 @@ export default function AuthHeader() {
         {user ? (
           <div className="flex items-center space-x-4">
             <Link href="/dashboard" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-600 text-white flex items-center justify-center font-bold text-sm">
-                {initial}
-              </div>
+              <Avatar src={avatarUrl} name={displayName || user.email} size="sm" />
               <span className="text-sm font-bold text-slate-700 dark:text-slate-300 hidden md:block">{displayName || user.email}</span>
             </Link>
             <button onClick={handleLogOut} className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">

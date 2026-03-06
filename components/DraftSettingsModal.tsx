@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { X, Play, Trash2, Users, AlertCircle, ChevronUp, ChevronDown, Shuffle, Lock } from 'lucide-react';
+import { X, Play, Trash2, Users, AlertCircle, ChevronUp, ChevronDown, Shuffle, Lock, Crown } from 'lucide-react';
 
 interface DraftSettingsModalProps {
   leagueId: string;
@@ -46,11 +46,7 @@ export default function DraftSettingsModal({ leagueId, members, isOpen, onClose,
     setDraftOrder(newOrder);
   };
 
-  const handleRandomize = () => {
-    const confirm = window.confirm("Are you sure? Randomizing will lock the draft order permanently for this draft session.");
-    if (!confirm) return;
-
-    // Proper Fisher-Yates shuffle (unbiased)
+  const doRandomize = () => {
     const shuffled = [...draftOrder];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -58,6 +54,14 @@ export default function DraftSettingsModal({ leagueId, members, isOpen, onClose,
     }
     setDraftOrder(shuffled);
     setIsRandomizedLocked(true);
+    toast.success('Draft order randomized!');
+  };
+
+  const handleRandomize = () => {
+    toast('Randomizing will lock the draft order. Continue?', {
+      action: { label: 'Confirm', onClick: doRandomize },
+      cancel: { label: 'Cancel', onClick: () => { } },
+    });
   };
 
   // --- DATABASE ACTIONS ---
@@ -76,22 +80,19 @@ export default function DraftSettingsModal({ leagueId, members, isOpen, onClose,
 
       await Promise.all(updatePromises);
 
-      const { error } = await supabase
+      // Save timer settings but keep status at pre_draft
+      // The commissioner will start the draft from inside the war room
+      await supabase
         .from('leagues')
         .update({
-          status: 'drafting',
-          current_pick: 1,
           draft_timer_seconds: timerSeconds,
-          current_pick_started_at: timerSeconds > 0 ? new Date().toISOString() : null
         })
         .eq('id', leagueId);
-
-      if (error) throw error;
 
       onDraftStarted();
       onClose();
     } catch (error: any) {
-      toast.error("Error starting draft: " + error.message);
+      toast.error("Error saving settings: " + error.message);
       setIsStarting(false);
     }
   };
@@ -99,21 +100,49 @@ export default function DraftSettingsModal({ leagueId, members, isOpen, onClose,
   const handleKickPlayer = async (userId: string, isCommissioner: boolean) => {
     if (isCommissioner) return toast.error("You cannot kick yourself!");
 
-    const confirmKick = window.confirm("Are you sure you want to remove this player from the league?");
-    if (!confirmKick) return;
+    toast('Remove this player from the league?', {
+      action: {
+        label: 'Remove',
+        onClick: async () => {
+          setIsKicking(userId);
+          const { error } = await supabase
+            .from('league_members')
+            .delete()
+            .eq('league_id', leagueId)
+            .eq('user_id', userId);
 
-    setIsKicking(userId);
-    const { error } = await supabase
-      .from('league_members')
-      .delete()
-      .eq('league_id', leagueId)
-      .eq('user_id', userId);
-
-    if (error) toast.error("Error removing player: " + error.message);
-    else window.location.reload();
-
-    setIsKicking(null);
+          if (error) toast.error("Error removing player: " + error.message);
+          else window.location.reload();
+          setIsKicking(null);
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => { } },
+    });
   };
+
+  /*
+  const handleTransferCommissioner = async (userId: string, userName: string) => {
+    toast(`Make ${userName} the new Commissioner?`, {
+      description: "You will lose your Commissioner privileges.",
+      action: {
+        label: 'Confirm Transfer',
+        onClick: async () => {
+          const { error } = await supabase
+            .from('leagues')
+            .update({ created_by: userId })
+            .eq('id', leagueId);
+
+          if (error) toast.error("Error transferring permissions: " + error.message);
+          else {
+            toast.success(`${userName} is now the Commissioner!`);
+            setTimeout(() => window.location.reload(), 1000);
+          }
+        },
+      },
+      cancel: { label: 'Cancel', onClick: () => { } },
+    });
+  };
+  */
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
@@ -143,8 +172,8 @@ export default function DraftSettingsModal({ leagueId, members, isOpen, onClose,
                   key={val}
                   onClick={() => setTimerSeconds(val)}
                   className={`px-3 py-2 text-sm font-bold rounded-lg border transition-all ${timerSeconds === val
-                      ? 'bg-emerald-500 border-emerald-600 text-white'
-                      : 'bg-white dark:bg-card border-slate-200 dark:border-card-border text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    ? 'bg-emerald-500 border-emerald-600 text-white'
+                    : 'bg-white dark:bg-card border-slate-200 dark:border-card-border text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                     }`}
                 >
                   {val === 0 ? 'Off' : val + 's'}
@@ -199,14 +228,26 @@ export default function DraftSettingsModal({ leagueId, members, isOpen, onClose,
                       )}
 
                       {!isCommish && (
-                        <button
-                          onClick={() => handleKickPlayer(member.user_id, false)}
-                          disabled={isKicking === member.user_id}
-                          className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                          title="Kick Player"
-                        >
-                          {isKicking === member.user_id ? <span className="animate-pulse">...</span> : <Trash2 size={18} />}
-                        </button>
+                        <div className="flex gap-1">
+                          {/* Hidden for now per user request
+                          <button
+                            onClick={() => handleTransferCommissioner(member.user_id, member.profiles?.display_name || 'User')}
+                            className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/40 p-2 rounded-lg transition-colors"
+                            title="Make Commissioner"
+                          >
+                            <Crown size={18} />
+                          </button>
+                          */}
+
+                          <button
+                            onClick={() => handleKickPlayer(member.user_id, false)}
+                            disabled={isKicking === member.user_id}
+                            className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                            title="Kick Player"
+                          >
+                            {isKicking === member.user_id ? <span className="animate-pulse">...</span> : <Trash2 size={18} />}
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -226,7 +267,7 @@ export default function DraftSettingsModal({ leagueId, members, isOpen, onClose,
             disabled={isStarting || draftOrder.length === 0}
             className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-300 text-slate-900 dark:text-white px-6 py-2.5 rounded-xl font-black transition-transform hover:scale-105 shadow-sm"
           >
-            {isStarting ? 'Saving & Starting...' : <><Play size={18} fill="currentColor" /> Start Draft Now</>}
+            {isStarting ? 'Saving...' : <><Play size={18} fill="currentColor" /> Open the War Room</>}
           </button>
         </div>
 

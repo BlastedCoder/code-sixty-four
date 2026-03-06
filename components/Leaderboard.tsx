@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import ResultsPanel from './ResultsPanel';
 import TraditionalBracket from './TraditionalBracket';
 import TournamentBracket from './TournamentBracket';
+import Avatar from './Avatar';
 
 export default function Leaderboard({ leagueId, members }: any) {
   const [standings, setStandings] = useState<any[]>([]);
@@ -35,6 +36,7 @@ export default function Leaderboard({ leagueId, members }: any) {
         return {
           user_id: member.user_id,
           displayName: member.profiles?.display_name || 'Unknown Player',
+          avatarUrl: member.profiles?.avatar_url || null,
           totalPoints,
           teams: draftedTeams,
           hasChampion: draftedTeams.some((t: any) => t.wins === 6)
@@ -97,15 +99,16 @@ export default function Leaderboard({ leagueId, members }: any) {
 
         <div className="divide-y divide-slate-100">
           {standings.map((teamOwner: any, index: number) => (
-            <div key={teamOwner.user_id} className="p-6 flex flex-col md:flex-row gap-6 items-start md:items-center hover:bg-slate-50 dark:bg-background transition-colors">
-              <div className="flex items-center space-x-4 min-w-[200px]">
+            <div key={teamOwner.user_id} className="p-6 flex flex-col md:flex-row gap-6 items-start md:items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-background transition-colors">
+              <div className="flex items-center gap-4 min-w-[200px]">
                 <div className={`w-8 h-8 flex items-center justify-center font-extrabold rounded-full ${index === 0 ? 'bg-amber-100 text-amber-700' :
-                    index === 1 ? 'bg-slate-200 text-slate-700 dark:text-slate-300' :
-                      index === 2 ? 'bg-orange-100 text-orange-800' :
-                        'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                  index === 1 ? 'bg-slate-200 text-slate-700 dark:text-slate-300' :
+                    index === 2 ? 'bg-orange-100 text-orange-800' :
+                      'bg-slate-100 dark:bg-slate-700 text-slate-400'
                   }`}>
                   {index + 1}
                 </div>
+                <Avatar src={teamOwner.avatarUrl} name={teamOwner.displayName} size="sm" />
                 <div>
                   <h3 className="font-bold text-slate-900 dark:text-white text-lg">{teamOwner.displayName}</h3>
                   <span className="text-sm font-extrabold text-emerald-600">{teamOwner.totalPoints} PTS</span>
@@ -118,8 +121,8 @@ export default function Leaderboard({ leagueId, members }: any) {
                     <div
                       key={team.name}
                       className={`flex items-center space-x-2 text-xs font-bold border px-2.5 py-1.5 rounded-md shadow-sm transition-all ${team.is_eliminated
-                          ? 'bg-red-50 border-red-200 text-red-800 opacity-80'
-                          : 'bg-white dark:bg-card border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300'
+                        ? 'bg-red-50 border-red-200 text-red-800 opacity-80'
+                        : 'bg-white dark:bg-card border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300'
                         }`}
                     >
                       <div className="flex items-center space-x-1.5">
@@ -132,12 +135,12 @@ export default function Leaderboard({ leagueId, members }: any) {
                       </div>
 
                       <div className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${team.wins > 0
-                          ? team.is_eliminated
-                            ? 'bg-red-100 text-red-600'
-                            : 'bg-emerald-100 text-emerald-700'
-                          : team.is_eliminated
-                            ? 'bg-red-100/50 text-red-400'
-                            : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                        ? team.is_eliminated
+                          ? 'bg-red-100 text-red-600'
+                          : 'bg-emerald-100 text-emerald-700'
+                        : team.is_eliminated
+                          ? 'bg-red-100/50 text-red-400'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
                         }`}>
                         {team.wins} {team.wins === 1 ? 'pt' : 'pts'}
                       </div>
