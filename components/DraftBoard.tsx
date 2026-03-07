@@ -64,7 +64,13 @@ export default function DraftBoard({
 
   const userOnTheClock = getPlayerForPick(currentPick);
   const isMyTurn = userOnTheClock?.user_id === currentUser?.id;
-  const canDraft = (isMyTurn || isCommissioner) && !isPaused && !isDraftComplete && !isPreDraft;
+
+  // Players can draft when it's their turn and NOT paused.
+  // Commissioner can Proxy Draft ONLY when it IS paused (preventing race conditions).
+  const canDraft = (
+    (isMyTurn && !isPaused) ||
+    (isCommissioner && isPaused)
+  ) && !isDraftComplete && !isPreDraft;
 
   // 3. Generate all 64 picks for the Horizontal Ticker
   const all64Picks = useMemo(() => {
@@ -153,17 +159,19 @@ export default function DraftBoard({
             {!isPreDraft && isCommissioner && !isPaused && (
               <div className="flex gap-2">
                 <button onClick={() => onTogglePause(timerSecondsRef.current)} className="px-3 py-1.5 text-xs font-bold bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
-                  ⏸ Pause
-                </button>
-                <button onClick={onUndoPick} disabled={currentPick <= 1} className="px-3 py-1.5 text-xs font-bold bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-40">
-                  ↺ Undo
+                  ⏸ Pause for Commish Control
                 </button>
               </div>
             )}
             {!isPreDraft && isCommissioner && isPaused && (
-              <button onClick={() => onTogglePause(timerSecondsRef.current)} className="px-4 py-1.5 text-xs font-bold bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
-                ▶ Resume
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => onTogglePause(timerSecondsRef.current)} className="px-4 py-1.5 text-xs font-bold bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+                  ▶ Resume Draft
+                </button>
+                <button onClick={onUndoPick} disabled={currentPick <= 1} className="px-3 py-1.5 text-xs font-bold bg-red-500/80 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-40">
+                  ↺ Undo Last Pick
+                </button>
+              </div>
             )}
           </div>
         </div>
