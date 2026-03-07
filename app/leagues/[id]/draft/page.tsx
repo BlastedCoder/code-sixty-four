@@ -123,6 +123,9 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
 
   // 2. Undo the Last Pick
   const handleUndoPick = async () => {
+    if (league.status !== 'paused') {
+      return toast.error("The draft must be paused to undo a pick.");
+    }
     if (league.current_pick <= 1) return;
     const pickToUndo = league.current_pick - 1;
 
