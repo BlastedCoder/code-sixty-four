@@ -123,6 +123,9 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
 
   // 2. Undo the Last Pick
   const handleUndoPick = async () => {
+    if (league.status !== 'paused') {
+      return toast.error("The draft must be paused to undo a pick.");
+    }
     if (league.current_pick <= 1) return;
     const pickToUndo = league.current_pick - 1;
 
@@ -132,7 +135,15 @@ export default function LiveDraftRoomPage({ params }: { params: Promise<{ id: st
       .eq('pick_number', pickToUndo);
 
     await supabase.from('leagues')
-      .update({ current_pick: pickToUndo })
+      .update({
+        current_pick: pickToUndo,
+        // Reset the clock for the undone pick. Since the draft is Paused, 
+        // we store the full limit in remaining_seconds so it starts fresh on Resume.
+        ...(league.draft_timer_seconds > 0 ? {
+          remaining_seconds_on_pause: league.draft_timer_seconds,
+          current_pick_started_at: null
+        } : {})
+      })
       .eq('id', league.id);
   };
 
